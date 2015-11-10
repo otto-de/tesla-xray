@@ -9,8 +9,15 @@
 
 (defrecord DummyCheck []
   chk/XRayCheck
-  (start-realtime-check [_ _]
+  (start-check [_ _]
     (chk/->XRayCheckResult :ok "dummyresponse" 123)))
+
+(defrecord FailingCheck []
+  chk/XRayCheck
+  (start-check [_ _]
+    (throw (RuntimeException. "failing message"))))
+
+(def start-the-xraychecks #'chkr/start-the-xraychecks)
 
 (defn test-system [runtime-config]
   (-> (tesla/base-system (assoc runtime-config :name "test-system"))
@@ -25,8 +32,21 @@
         (chkr/register-realtime-check rt-checker (->DummyCheck) "DummyCheck")
         (is (= ["DummyCheck"] (keys @(:checks rt-checker))))
         (is (= DummyCheck (class (first (vals @(:checks rt-checker))))))
-        (chkr/start-the-realtimechecks rt-checker)
+        (start-the-xraychecks rt-checker)
         (is (= {"DummyCheck" {"dev" [(chk/->XRayCheckResult :ok "dummyresponse" 123)]}}
+               @(:check-results rt-checker)))
+        (finally
+          (comp/stop started))))))
+
+(deftest error-handling
+  (testing "should not stop even if exceptions occur"
+    (let [started (comp/start (test-system {:test-check-frequency    "100"
+                                            :test-check-environments "dev"}))
+          rt-checker (:rt-checker started)]
+      (try
+        (chkr/register-realtime-check rt-checker (->FailingCheck) "FailingCheck")
+        (start-the-xraychecks rt-checker)
+        (is (= {"FailingCheck" {"dev" [(chk/->XRayCheckResult :error "failing message" nil)]}}
                @(:check-results rt-checker)))
         (finally
           (comp/stop started))))))

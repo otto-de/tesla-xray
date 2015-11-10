@@ -10,8 +10,10 @@
 
 (defrecord DummyCheck []
   chk/XRayCheck
-  (start-realtime-check [_ _]
+  (start-check [_ _]
     (chk/->XRayCheckResult :ok "dummyresponse" 123)))
+
+(def start-the-xraychecks #'chkr/start-the-xraychecks)
 
 (defn test-system [runtime-config]
   (-> (tesla/base-system (assoc runtime-config :name "test-system"))
@@ -25,7 +27,7 @@
                         handlers (handler/handler (:handler started))]
                     (try
                       (chkr/register-realtime-check rt-checker (->DummyCheck) "DummyCheck")
-                      (chkr/start-the-realtimechecks rt-checker)
+                      (start-the-xraychecks rt-checker)
                       (let [response (handlers (mock/request :get "/rt-checker"))]
                         (is (= 200 (:status response)))
                         (is (= {"Content-Type" "text/html"} (:headers response)))

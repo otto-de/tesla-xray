@@ -18,29 +18,35 @@
   (let [limited-results (take (- steps-to-keep 1) results)]
     (conj limited-results result)))
 
-(defn start-the-realtimechecks [{:keys [check-results checks environments]}]
+(defn- store-result [check-results check-name current-env result]
+  (swap! check-results update-in [check-name current-env] (partial store-check-result result)))
+
+(defn- start-the-xraychecks [{:keys [check-results checks environments]}]
   (log/info "Starting checks")
   (doseq [[check-name check] @checks]
     (doseq [current-env environments]
-      (let [result (chk/start-realtime-check check current-env)]
-        (swap! check-results
-               update-in [check-name current-env] (partial store-check-result result))))))
+      (try
+        (let [result (chk/start-check check current-env)]
+          (store-result check-results check-name current-env result))
+        (catch Exception e
+          (log/error e "an error occured when executing check " check-name (.getMessage e))
+          (store-result check-results check-name current-env (chk/->XRayCheckResult :error (.getMessage e) nil)))))))
 
-(defn single-check-result-as-html [{:keys [status message timestamp]}]
+(defn- single-check-result-as-html [{:keys [status message timestamp]}]
   [:div {:class (name status)} (str (time/from-long timestamp) "   " message)])
 
-(defn render-results-for-env [total-cols [env results]]
+(defn- render-results-for-env [total-cols [env results]]
   (let [width (int (/ 80 total-cols))]
     [:div {:class "env-results" :style (str "width: " width "%;")}
      [:h3 env]
      (map single-check-result-as-html (take steps-to-keep results))]))
 
-(defn check-results-as-html [[checkname results-for-env]]
+(defn- check-results-as-html [[checkname results-for-env]]
   [:div
    [:h2 {:class "rt-check-header"} checkname]
    (map (partial render-results-for-env (count results-for-env)) results-for-env)])
 
-(defn html-response [{:keys [check-results]}]
+(defn- html-response [{:keys [check-results]}]
   (hc/html5
     [:head
      [:meta {:charset "utf-8"}]
@@ -51,7 +57,7 @@
       [:h1 "XRayCheck Results"]]
      (map check-results-as-html @check-results)]))
 
-(defn realtime-checker-routes [self endpoint]
+(defn- realtime-checker-routes [self endpoint]
   (comp/routes
     (croute/resources "/")
     (comp/GET endpoint []
@@ -59,15 +65,15 @@
        :headers {"Content-Type" "text/html"}
        :body    (html-response self)})))
 
-(defn parse-rt-check-environments [config which-checker]
+(defn- parse-rt-check-environments [config which-checker]
   (println (keyword (str which-checker "-environments")))
   (let [env-str (get-in config [:config (keyword (str which-checker "-check-environments"))] "default")]
     (clojure.string/split env-str #";")))
 
-(defn parse-refresh-frequency [config which-checker]
+(defn- parse-refresh-frequency [config which-checker]
   (Integer/parseInt (get-in config [:config (keyword (str which-checker "-check-frequency"))] "60000")))
 
-(defn parse-rt-endpoint [config which-checker]
+(defn- parse-rt-endpoint [config which-checker]
   (get-in config [:config (keyword (str which-checker "-check-endpoint"))] "/rt-checker"))
 
 (defrecord XrayChecker [which-checker handler config registered-checks]
@@ -87,7 +93,7 @@
       (log/info "running checks every " refresh-frequency "ms")
       (assoc new-self
         :schedule (at/every refresh-frequency
-                            #(start-the-realtimechecks new-self)
+                            #(start-the-xraychecks new-self)
                             executor))))
 
   (stop [self]

@@ -6,8 +6,10 @@
 
 (defrecord DummyCheck [response]
   chk/XRayCheck
-  (start-realtime-check [_ _]
+  (start-check [_ _]
     (chk/->XRayCheckResult :ok "dummymsg" @response)))
+
+(def start-the-xraychecks #'chkr/start-the-xraychecks)
 
 (deftest test-store-results
   (testing "should store limited results"
@@ -16,17 +18,17 @@
                 :checks        (atom {"dummy" (->DummyCheck response)})
                 :environments  ["dev"]}]
       (reset! response 1)
-      (chkr/start-the-realtimechecks self)
+      (start-the-xraychecks self)
       (reset! response 2)
-      (chkr/start-the-realtimechecks self)
+      (start-the-xraychecks self)
       (reset! response 3)
-      (chkr/start-the-realtimechecks self)
+      (start-the-xraychecks self)
       (reset! response 4)
-      (chkr/start-the-realtimechecks self)
+      (start-the-xraychecks self)
       (reset! response 5)
-      (chkr/start-the-realtimechecks self)
+      (start-the-xraychecks self)
       (reset! response 6)
-      (chkr/start-the-realtimechecks self)
+      (start-the-xraychecks self)
       (is (= {"dummy" {"dev" [(chk/->XRayCheckResult :ok "dummymsg" 6)
                               (chk/->XRayCheckResult :ok "dummymsg" 5)
                               (chk/->XRayCheckResult :ok "dummymsg" 4)
@@ -34,9 +36,11 @@
                               (chk/->XRayCheckResult :ok "dummymsg" 2)]}}
              @(:check-results self))))))
 
+(def parse-rt-check-environments #'chkr/parse-rt-check-environments)
+(def parse-refresh-frequency #'chkr/parse-refresh-frequency)
 
 (deftest parsing-properties
   (testing "should parse the environment string from config"
-    (is (= ["dev" "test"] (chkr/parse-rt-check-environments {:config {:foo-check-environments "dev;test"}} "foo"))))
+    (is (= ["dev" "test"] (parse-rt-check-environments {:config {:foo-check-environments "dev;test"}} "foo"))))
   (testing "should parse the frequency from config"
-    (is (= 100 (chkr/parse-refresh-frequency {:config {:foo-check-frequency "100"}} "foo")))))
+    (is (= 100 (parse-refresh-frequency {:config {:foo-check-frequency "100"}} "foo")))))
