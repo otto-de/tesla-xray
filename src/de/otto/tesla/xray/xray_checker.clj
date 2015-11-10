@@ -21,19 +21,28 @@
 (defn- store-result [check-results check-name current-env result]
   (swap! check-results update-in [check-name current-env] (partial store-check-result result)))
 
+(defn- current-time []
+  (System/currentTimeMillis))
+
+(defn start-single-xraycheck [check-results check current-env check-name]
+  (try
+    (let [start-time (current-time)
+          xray-chk-result (chk/start-check check current-env)
+          stop-time (current-time)]
+      (store-result check-results check-name current-env (chk/with-timings xray-chk-result (- stop-time start-time) stop-time)))
+    (catch Exception e
+      (log/error e "an error occured when executing check " check-name (.getMessage e))
+      (store-result check-results check-name current-env (chk/->XRayCheckResult :error (.getMessage e))))))
+
 (defn- start-the-xraychecks [{:keys [check-results checks environments]}]
   (log/info "Starting checks")
   (doseq [[check-name check] @checks]
     (doseq [current-env environments]
-      (try
-        (let [result (chk/start-check check current-env)]
-          (store-result check-results check-name current-env result))
-        (catch Exception e
-          (log/error e "an error occured when executing check " check-name (.getMessage e))
-          (store-result check-results check-name current-env (chk/->XRayCheckResult :error (.getMessage e) nil)))))))
+      (start-single-xraycheck check-results check current-env check-name))))
 
-(defn- single-check-result-as-html [{:keys [status message timestamp]}]
-  [:div {:class (name status)} (str (time/from-long timestamp) "   " message)])
+(defn- single-check-result-as-html [{:keys [status message time-taken stop-time]}]
+  (let [text (str (time/from-long stop-time) " tt:" time-taken " " message)]
+    [:div {:class (name status)} text]))
 
 (defn- render-results-for-env [total-cols [env results]]
   (let [width (int (/ 80 total-cols))]
