@@ -20,6 +20,12 @@ body {
     color: black;
 }
 
+.warning {
+    background-color: #fff922;
+    font-size: 15px;
+    color: black;
+}
+
 div.env-results {
     float:left;
     margin-left: 1px;
