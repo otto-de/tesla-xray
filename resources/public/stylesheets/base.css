@@ -4,9 +4,6 @@ body {
     color: #2980b9;
 }
 
-.rt-check-header {
-    color: white;
-}
 
 .error {
     background-color: red;
@@ -26,8 +23,25 @@ body {
     color: black;
 }
 
+div.check-result-container {
+    width: 100%;
+}
+
+div.check-results {
+    float: left;
+    margin-top: 10px;
+    width: 100%;
+}
+div.check-header {
+    color: white;
+    font-size: 25px;
+}
+
 div.env-results {
     float:left;
-    margin-left: 1px;
-    margin-right: 1px;
+    padding-left: 3%;
+}
+div.env-header {
+    font-size: 20px;
+    color: white;
 }

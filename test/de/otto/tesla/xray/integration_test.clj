@@ -32,7 +32,7 @@
                                               :test-check-environments "dev"}))
             rt-checker (:rt-checker started)]
         (try
-          (chkr/register-realtime-check rt-checker (->DummyCheck) "DummyCheck")
+          (chkr/register-check rt-checker (->DummyCheck) "DummyCheck")
           (is (= ["DummyCheck"] (keys @(:checks rt-checker))))
           (is (= DummyCheck (class (first (vals @(:checks rt-checker))))))
           (start-the-xraychecks rt-checker)
@@ -47,7 +47,7 @@
                                             :test-check-environments "dev"}))
           rt-checker (:rt-checker started)]
       (try
-        (chkr/register-realtime-check rt-checker (->FailingCheck) "FailingCheck")
+        (chkr/register-check rt-checker (->FailingCheck) "FailingCheck")
         (start-the-xraychecks rt-checker)
         (is (= {"FailingCheck" {"dev" [(chk/->XRayCheckResult :error "failing message")]}}
                @(:check-results rt-checker)))
@@ -62,7 +62,7 @@
             rt-checker (:rt-checker started)
             handlers (handler/handler (:handler started))]
         (try
-          (chkr/register-realtime-check rt-checker (->DummyCheck) "DummyCheck")
+          (chkr/register-check rt-checker (->DummyCheck) "DummyCheck")
           (start-the-xraychecks rt-checker)
           (let [response (handlers (mock/request :get "/rt-checker"))]
             (is (= 200 (:status response)))
