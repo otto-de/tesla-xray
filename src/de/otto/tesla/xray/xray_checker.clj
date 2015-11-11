@@ -14,31 +14,31 @@
 (defprotocol XRayCheckerProtocol
   (register-check [self check checkname]))
 
-(defn- store-check-result [result results]
-  (let [limited-results (take (- steps-to-keep 1) results)]
+(defn- store-check-result [max-check-history result results]
+  (let [limited-results (take (- max-check-history 1) results)]
     (conj limited-results result)))
 
-(defn- store-result [check-results check-name current-env result]
-  (swap! check-results update-in [check-name current-env] (partial store-check-result result)))
+(defn- store-result [check-results check-name current-env max-check-history result]
+  (swap! check-results update-in [check-name current-env] (partial store-check-result max-check-history result)))
 
 (defn- current-time []
   (System/currentTimeMillis))
 
-(defn start-single-xraycheck [check-results check current-env check-name]
+(defn start-single-xraycheck [max-check-history check-results check current-env check-name]
   (try
     (let [start-time (current-time)
           xray-chk-result (chk/start-check check current-env)
           stop-time (current-time)]
-      (store-result check-results check-name current-env (chk/with-timings xray-chk-result (- stop-time start-time) stop-time)))
+      (store-result check-results check-name current-env max-check-history (chk/with-timings xray-chk-result (- stop-time start-time) stop-time)))
     (catch Exception e
       (log/error e "an error occured when executing check " check-name (.getMessage e))
-      (store-result check-results check-name current-env (chk/->XRayCheckResult :error (.getMessage e))))))
+      (store-result check-results check-name current-env max-check-history (chk/->XRayCheckResult :error (.getMessage e))))))
 
-(defn- start-the-xraychecks [{:keys [check-results checks environments]}]
+(defn- start-the-xraychecks [{:keys [max-check-history check-results checks environments]}]
   (log/info "Starting checks")
   (doseq [[check-name check] @checks]
     (doseq [current-env environments]
-      (start-single-xraycheck check-results check current-env check-name))))
+      (start-single-xraycheck max-check-history check-results check current-env check-name))))
 
 (defn- single-check-result-as-html [{:keys [status message time-taken stop-time]}]
   (let [text (str (time/from-long stop-time) " tt:" time-taken " " message)]
@@ -87,15 +87,20 @@
 (defn- parse-rt-endpoint [config which-checker]
   (get-in config [:config (keyword (str which-checker "-check-endpoint"))] "/rt-checker"))
 
+(defn parse-max-check-history [config which-checker]
+  (Integer/parseInt (get-in config [:config (keyword (str which-checker "-max-check-history"))] "100")))
+
 (defrecord XrayChecker [which-checker handler config registered-checks]
   c/Lifecycle
   (start [self]
     (log/info "-> starting XrayChecker")
     (let [executor (at/mk-pool)
+          max-check-history (parse-max-check-history config which-checker)
           refresh-frequency (parse-refresh-frequency config which-checker)
           environments (parse-rt-check-environments config which-checker)
           endpoint (parse-rt-endpoint config which-checker)
           new-self (assoc self
+                     :max-check-history max-check-history
                      :environments environments
                      :executor executor
                      :checks (atom {})

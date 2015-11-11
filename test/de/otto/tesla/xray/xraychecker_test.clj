@@ -16,6 +16,7 @@
     (testing "should store limited results"
       (let [response (atom nil)
             self {:check-results (atom {})
+                  :max-check-history 3
                   :checks        (atom {"dummy" (->DummyCheck response)})
                   :environments  ["dev"]}]
         (reset! response 1)
@@ -32,16 +33,17 @@
         (start-the-xraychecks self)
         (is (= {"dummy" {"dev" [(chk/->XRayCheckResult :ok 6 0 10)
                                 (chk/->XRayCheckResult :ok 5 0 10)
-                                (chk/->XRayCheckResult :ok 4 0 10)
-                                (chk/->XRayCheckResult :ok 3 0 10)
-                                (chk/->XRayCheckResult :ok 2 0 10)]}}
+                                (chk/->XRayCheckResult :ok 4 0 10)]}}
                @(:check-results self)))))))
 
 (def parse-rt-check-environments #'chkr/parse-rt-check-environments)
 (def parse-refresh-frequency #'chkr/parse-refresh-frequency)
+(def parse-max-check-history #'chkr/parse-max-check-history)
 
 (deftest parsing-properties
   (testing "should parse the environment string from config"
     (is (= ["dev" "test"] (parse-rt-check-environments {:config {:foo-check-environments "dev;test"}} "foo"))))
   (testing "should parse the frequency from config"
-    (is (= 100 (parse-refresh-frequency {:config {:foo-check-frequency "100"}} "foo")))))
+    (is (= 100 (parse-refresh-frequency {:config {:foo-check-frequency "100"}} "foo"))))
+  (testing "should parse the max check history"
+    (is (= 99 (parse-max-check-history {:config {:foo-max-check-history "99"}} "foo")))))
