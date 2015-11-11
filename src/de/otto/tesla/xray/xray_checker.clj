@@ -47,7 +47,7 @@
 (defn- render-results-for-env [total-cols [env results]]
   (let [width (int (/ 97 total-cols))
         padding (int (/ 3 total-cols))]
-    [:div {:class "env-results" :style (str "width: " width "%; padding-left: "padding"%;")}
+    [:div {:class "env-results" :style (str "width: " width "%; padding-left: " padding "%;")}
      [:div {:class "env-header"} env]
      (map single-check-result-as-html (take steps-to-keep results))]))
 
@@ -76,18 +76,18 @@
        :headers {"Content-Type" "text/html"}
        :body    (html-response self)})))
 
-(defn- parse-rt-check-environments [config which-checker]
+(defn- parse-check-environments [config which-checker]
   (println (keyword (str which-checker "-environments")))
-  (let [env-str (get-in config [:config (keyword (str which-checker "-check-environments"))] "default")]
-    (clojure.string/split env-str #";")))
+  (let [env-str (get-in config [:config (keyword (str which-checker "-check-environments"))] "")]
+    (if (empty? env-str) [] (clojure.string/split env-str #";"))))
 
 (defn- parse-refresh-frequency [config which-checker]
   (Integer/parseInt (get-in config [:config (keyword (str which-checker "-check-frequency"))] "60000")))
 
-(defn- parse-rt-endpoint [config which-checker]
+(defn- parse-endpoint [config which-checker]
   (get-in config [:config (keyword (str which-checker "-check-endpoint"))] "/rt-checker"))
 
-(defn parse-max-check-history [config which-checker]
+(defn- parse-max-check-history [config which-checker]
   (Integer/parseInt (get-in config [:config (keyword (str which-checker "-max-check-history"))] "100")))
 
 (defrecord XrayChecker [which-checker handler config registered-checks]
@@ -97,8 +97,8 @@
     (let [executor (at/mk-pool)
           max-check-history (parse-max-check-history config which-checker)
           refresh-frequency (parse-refresh-frequency config which-checker)
-          environments (parse-rt-check-environments config which-checker)
-          endpoint (parse-rt-endpoint config which-checker)
+          environments (parse-check-environments config which-checker)
+          endpoint (parse-endpoint config which-checker)
           new-self (assoc self
                      :max-check-history max-check-history
                      :environments environments

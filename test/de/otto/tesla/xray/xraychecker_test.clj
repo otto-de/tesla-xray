@@ -36,13 +36,15 @@
                                 (chk/->XRayCheckResult :ok 4 0 10)]}}
                @(:check-results self)))))))
 
-(def parse-rt-check-environments #'chkr/parse-rt-check-environments)
+(def parse-check-environments #'chkr/parse-check-environments)
 (def parse-refresh-frequency #'chkr/parse-refresh-frequency)
 (def parse-max-check-history #'chkr/parse-max-check-history)
 
 (deftest parsing-properties
   (testing "should parse the environment string from config"
-    (is (= ["dev" "test"] (parse-rt-check-environments {:config {:foo-check-environments "dev;test"}} "foo"))))
+    (is (= ["dev" "test"] (parse-check-environments {:config {:foo-check-environments "dev;test"}} "foo"))))
+  (testing "should parse empty environment string as nil"
+    (is (= [] (parse-check-environments {:config {:foo-check-environments ""}} "foo"))))
   (testing "should parse the frequency from config"
     (is (= 100 (parse-refresh-frequency {:config {:foo-check-frequency "100"}} "foo"))))
   (testing "should parse the max check history"
