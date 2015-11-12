@@ -23,6 +23,12 @@ body {
     color: black;
 }
 
+.none {
+    background-color: #2c3e50;
+    font-size: 15px;
+    color: #2980b9;
+}
+
 div.check-result-container {
     width: 100%;
 }

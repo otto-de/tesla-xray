@@ -9,8 +9,6 @@
             [de.otto.tesla.stateful.handler :as hndl]
             [de.otto.tesla.xray.check :as chk]))
 
-(def steps-to-keep 5)
-
 (defprotocol XRayCheckerProtocol
   (register-check [self check checkname]))
 
@@ -42,22 +40,22 @@
 
 (defn- single-check-result-as-html [{:keys [status message time-taken stop-time]}]
   (let [stop-time-str (if stop-time (time/from-long stop-time))
-        text (str stop-time-str " tt: " time-taken " " message)]
+        text (str stop-time-str " tt:" time-taken " " message)]
     [:div {:class (name status)} text]))
 
-(defn- render-results-for-env [total-cols [env results]]
+(defn- render-results-for-env [total-cols nr-checks-displayed [env results]]
   (let [width (int (/ 97 total-cols))
         padding (int (/ 3 total-cols))]
     [:div {:class "env-results" :style (str "width: " width "%; padding-left: " padding "%;")}
      [:div {:class "env-header"} env]
-     (map single-check-result-as-html (take steps-to-keep results))]))
+     (map single-check-result-as-html (take nr-checks-displayed results))]))
 
-(defn- check-results-as-html [[checkname results-for-env]]
+(defn- check-results-as-html [nr-checks-displayed [checkname results-for-env]]
   [:div {:class "check-results"}
    [:div {:class "check-header"} checkname]
-   (map (partial render-results-for-env (count results-for-env)) results-for-env)])
+   (map (partial render-results-for-env (count results-for-env) nr-checks-displayed) results-for-env)])
 
-(defn- html-response [{:keys [check-results]}]
+(defn- html-response [{:keys [check-results nr-checks-displayed]}]
   (hc/html5
     [:head
      [:meta {:charset "utf-8"}]
@@ -67,7 +65,7 @@
      [:header
       [:h1 "XRayCheck Results"]]
      [:div {:class "check-result-container"}
-      (map check-results-as-html @check-results)]]))
+      (map (partial check-results-as-html nr-checks-displayed) @check-results)]]))
 
 (defn- xray-routes [self endpoint]
   (comp/routes
@@ -91,16 +89,21 @@
 (defn- parse-max-check-history [config which-checker]
   (Integer/parseInt (get-in config [:config (keyword (str which-checker "-max-check-history"))] "100")))
 
+(defn parse-nr-checks-displayed [config which-checker]
+  (Integer/parseInt (get-in config [:config (keyword (str which-checker "-nr-checks-displayed"))] "5")))
+
 (defrecord XrayChecker [which-checker handler config registered-checks]
   c/Lifecycle
   (start [self]
     (log/info "-> starting XrayChecker")
     (let [executor (at/mk-pool)
+          nr-checks-displayed (parse-nr-checks-displayed config which-checker)
           max-check-history (parse-max-check-history config which-checker)
           refresh-frequency (parse-refresh-frequency config which-checker)
           environments (parse-check-environments config which-checker)
           endpoint (parse-endpoint config which-checker)
           new-self (assoc self
+                     :nr-checks-displayed nr-checks-displayed
                      :max-check-history max-check-history
                      :environments environments
                      :executor executor

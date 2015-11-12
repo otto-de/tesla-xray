@@ -39,6 +39,7 @@
 (def parse-check-environments #'chkr/parse-check-environments)
 (def parse-refresh-frequency #'chkr/parse-refresh-frequency)
 (def parse-max-check-history #'chkr/parse-max-check-history)
+(def parse-nr-checks-displayed #'chkr/parse-nr-checks-displayed)
 
 (deftest parsing-properties
   (testing "should parse the environment string from config"
@@ -48,4 +49,6 @@
   (testing "should parse the frequency from config"
     (is (= 100 (parse-refresh-frequency {:config {:foo-check-frequency "100"}} "foo"))))
   (testing "should parse the max check history"
-    (is (= 99 (parse-max-check-history {:config {:foo-max-check-history "99"}} "foo")))))
+    (is (= 99 (parse-max-check-history {:config {:foo-max-check-history "99"}} "foo"))))
+  (testing "should parse the nr of checks to be displayed"
+    (is (= 9 (parse-nr-checks-displayed {:config {:foo-nr-checks-displayed "9"}} "foo")))))

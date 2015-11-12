@@ -9,10 +9,11 @@
   (:gen-class))
 
 (defn random-result [_]
-  (case (rand-int 3)
+  (case (rand-int 4)
     0 (chk/->XRayCheckResult :ok "")
     1 (chk/->XRayCheckResult :error "")
-    2 (chk/->XRayCheckResult :warning "")))
+    2 (chk/->XRayCheckResult :warning "")
+    3 (chk/->XRayCheckResult :none "")))
 
 (defn n-random-results [n]
   (into [] (map random-result (range n))))
