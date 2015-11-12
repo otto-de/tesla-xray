@@ -17,7 +17,8 @@
       (let [response (atom nil)
             self {:check-results (atom {})
                   :max-check-history 3
-                  :checks        (atom {"dummy" (->DummyCheck response)})
+                  :checks        (atom {"dummy" {:check (->DummyCheck response)
+                                                 :strategy nil}})
                   :environments  ["dev"]}]
         (reset! response 1)
         (start-the-xraychecks self)

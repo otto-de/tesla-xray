@@ -15,7 +15,6 @@
                    :main de.otto.tesla.xray.testsystem
                    :source-paths ["src" "test"]
                    :dependencies [[de.otto/tesla-microservice "0.1.18"]
-                                  [de.otto/tesla-basic-logging "0.1.4"]
                                   [me.lomin/component-restart "0.1.0"]
                                   [de.otto/tesla-jetty "0.1.0"]
                                   [ring-mock "0.1.5"]]}})

@@ -10,7 +10,8 @@
             [de.otto.tesla.xray.check :as chk]))
 
 (defprotocol XRayCheckerProtocol
-  (register-check [self check checkname]))
+  (register-check [self check checkname])
+  (register-check-with-strategy [self check checkname strategy]))
 
 (defn- store-check-result [max-check-history result results]
   (let [limited-results (take (- max-check-history 1) results)]
@@ -34,7 +35,7 @@
 
 (defn- start-the-xraychecks [{:keys [max-check-history check-results checks environments]}]
   (log/info "Starting checks")
-  (doseq [[check-name check] @checks]
+  (doseq [[check-name {:keys [check]}] @checks]
     (doseq [current-env environments]
       (start-single-xraycheck max-check-history check-results check current-env check-name))))
 
@@ -76,7 +77,6 @@
        :body    (html-response self)})))
 
 (defn- parse-check-environments [config which-checker]
-  (println (keyword (str which-checker "-environments")))
   (let [env-str (get-in config [:config (keyword (str which-checker "-check-environments"))] "")]
     (if (empty? env-str) [] (clojure.string/split env-str #";"))))
 
@@ -125,8 +125,12 @@
 
   XRayCheckerProtocol
   (register-check [self check checkname]
+    (register-check-with-strategy self check checkname nil))
+
+  (register-check-with-strategy [self check checkname strategy]
     (log/info "registering check with name: " checkname)
-    (swap! (:checks self) assoc checkname check)))
+    (swap! (:checks self) assoc checkname {:check    check
+                                           :strategy strategy})))
 
 (defn new-xraychecker [which-checker]
   (map->XrayChecker {:which-checker which-checker}))

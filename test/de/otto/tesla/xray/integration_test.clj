@@ -34,7 +34,7 @@
         (try
           (chkr/register-check rt-checker (->DummyCheck) "DummyCheck")
           (is (= ["DummyCheck"] (keys @(:checks rt-checker))))
-          (is (= DummyCheck (class (first (vals @(:checks rt-checker))))))
+          (is (= DummyCheck (class (:check (first (vals @(:checks rt-checker)))))))
           (start-the-xraychecks rt-checker)
           (is (= {"DummyCheck" {"dev" [(chk/->XRayCheckResult :ok "dummy-message" 0 10)]}}
                  @(:check-results rt-checker)))
