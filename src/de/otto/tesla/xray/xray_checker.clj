@@ -23,7 +23,7 @@
 (defn- current-time []
   (System/currentTimeMillis))
 
-(defn start-single-xraycheck [max-check-history check-results check current-env check-name]
+(defn- start-single-xraycheck [max-check-history check-results [check check-name current-env]]
   (try
     (let [start-time (current-time)
           xray-chk-result (chk/start-check check current-env)
@@ -33,11 +33,23 @@
       (log/error e "an error occured when executing check " check-name (.getMessage e))
       (store-result check-results check-name current-env max-check-history (chk/->XRayCheckResult :error (.getMessage e))))))
 
+(defn- wrap-with [a-fn]
+  (partial deref (future (a-fn))))
+
+(defn- with-evironments [environments check check-name]
+  (map (fn [cenv] [check check-name cenv]) environments))
+
+(defn- build-check-name-env-vecs [environments checks]
+  (->> @checks
+       (mapcat (fn [[check-name {:keys [check]}]] (with-evironments environments check check-name)))
+       (into [])))
+
 (defn- start-the-xraychecks [{:keys [max-check-history check-results checks environments]}]
-  (log/info "Starting checks")
-  (doseq [[check-name {:keys [check]}] @checks]
-    (doseq [current-env environments]
-      (start-single-xraycheck max-check-history check-results check current-env check-name))))
+  (let [pstart-single-xraycheck (partial start-single-xraycheck max-check-history check-results) ;check name env - missing
+        check-name-env-vecs (build-check-name-env-vecs environments checks)
+        futures (map #(wrap-with (partial pstart-single-xraycheck %)) check-name-env-vecs)]
+    (log/info "Starting checks")
+    (apply pcalls futures)))
 
 (defn- single-check-result-as-html [{:keys [status message time-taken stop-time]}]
   (let [stop-time-str (if stop-time (time/from-long stop-time))

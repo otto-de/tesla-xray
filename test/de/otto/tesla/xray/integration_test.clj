@@ -14,6 +14,12 @@
   (start-check [_ _]
     (chk/->XRayCheckResult :ok "dummy-message")))
 
+(defrecord WaitingDummyCheck [t]
+  chk/XRayCheck
+  (start-check [_ _]
+    (Thread/sleep t)
+    (chk/->XRayCheckResult :ok t)))
+
 (defrecord FailingCheck []
   chk/XRayCheck
   (start-check [_ _]
@@ -29,14 +35,23 @@
   (testing "should register and check and store its results"
     (with-redefs [chkr/current-time (fn [] 10)]
       (let [started (comp/start (test-system {:test-check-frequency    "100"
-                                              :test-check-environments "dev"}))
+                                              :test-check-environments "dev"
+                                              :test-max-check-history "2"}))
             rt-checker (:rt-checker started)]
         (try
           (chkr/register-check rt-checker (->DummyCheck) "DummyCheck")
           (is (= ["DummyCheck"] (keys @(:checks rt-checker))))
           (is (= DummyCheck (class (:check (first (vals @(:checks rt-checker)))))))
-          (start-the-xraychecks rt-checker)
+          (Thread/sleep 100)
           (is (= {"DummyCheck" {"dev" [(chk/->XRayCheckResult :ok "dummy-message" 0 10)]}}
+                 @(:check-results rt-checker)))
+          (Thread/sleep 100)
+          (is (= {"DummyCheck" {"dev" [(chk/->XRayCheckResult :ok "dummy-message" 0 10)
+                                       (chk/->XRayCheckResult :ok "dummy-message" 0 10)]}}
+                 @(:check-results rt-checker)))
+          (Thread/sleep 100)
+          (is (= {"DummyCheck" {"dev" [(chk/->XRayCheckResult :ok "dummy-message" 0 10)
+                                       (chk/->XRayCheckResult :ok "dummy-message" 0 10)]}}
                  @(:check-results rt-checker)))
           (finally
             (comp/stop started)))))))
@@ -48,7 +63,7 @@
           rt-checker (:rt-checker started)]
       (try
         (chkr/register-check rt-checker (->FailingCheck) "FailingCheck")
-        (start-the-xraychecks rt-checker)
+        (Thread/sleep 100)
         (is (= {"FailingCheck" {"dev" [(chk/->XRayCheckResult :error "failing message")]}}
                @(:check-results rt-checker)))
         (finally
@@ -68,5 +83,41 @@
             (is (= 200 (:status response)))
             (is (= {"Content-Type" "text/html"} (:headers response)))
             (is (= true (.contains (:body response) "2015-11-10T10:40:24.778Z tt:0 dummy-message"))))
+          (finally
+            (comp/stop started)))))))
+
+(deftest execution-in-parallel
+  (testing "should execute checks in parallel"
+    (with-redefs [chkr/current-time (fn [] 10)]
+      (let [started (comp/start (test-system {:test-check-frequency    "100"
+                                              :test-check-environments "dev"}))
+            rt-checker (:rt-checker started)]
+        (try
+          (chkr/register-check rt-checker (->WaitingDummyCheck 0) "DummyCheck1")
+          (chkr/register-check rt-checker (->WaitingDummyCheck 100) "DummyCheck2")
+          (chkr/register-check rt-checker (->WaitingDummyCheck 100) "DummyCheck3")
+          (chkr/register-check rt-checker (->WaitingDummyCheck 200) "DummyCheck4")
+          (chkr/register-check rt-checker (->WaitingDummyCheck 200) "DummyCheck5")
+          ;(start-the-xraychecks rt-checker)
+          (Thread/sleep 100)                                ; wait for start
+          (is (= {"DummyCheck1" {"dev" [(chk/->XRayCheckResult :ok 0 0 10)]}}
+                 @(:check-results rt-checker)))
+          (Thread/sleep 100)
+          (is (= {"DummyCheck1" {"dev" [(chk/->XRayCheckResult :ok 0 0 10)
+                                        (chk/->XRayCheckResult :ok 0 0 10)]}
+                  "DummyCheck2" {"dev" [(chk/->XRayCheckResult :ok 100 0 10)]}
+                  "DummyCheck3" {"dev" [(chk/->XRayCheckResult :ok 100 0 10)]}}
+                 @(:check-results rt-checker)))
+          (Thread/sleep 100)
+          (is (= {"DummyCheck1" {"dev" [(chk/->XRayCheckResult :ok 0 0 10)
+                                        (chk/->XRayCheckResult :ok 0 0 10)
+                                        (chk/->XRayCheckResult :ok 0 0 10)]}
+                  "DummyCheck2" {"dev" [(chk/->XRayCheckResult :ok 100 0 10)
+                                        (chk/->XRayCheckResult :ok 100 0 10)]}
+                  "DummyCheck3" {"dev" [(chk/->XRayCheckResult :ok 100 0 10)
+                                        (chk/->XRayCheckResult :ok 100 0 10)]}
+                  "DummyCheck4" {"dev" [(chk/->XRayCheckResult :ok 200 0 10)]}
+                  "DummyCheck5" {"dev" [(chk/->XRayCheckResult :ok 200 0 10)]}}
+                 @(:check-results rt-checker)))
           (finally
             (comp/stop started)))))))

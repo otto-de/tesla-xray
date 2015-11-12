@@ -9,34 +9,6 @@
   (start-check [_ _]
     (chk/->XRayCheckResult :ok @response)))
 
-(def start-the-xraychecks #'chkr/start-the-xraychecks)
-
-(deftest test-store-results
-  (with-redefs [chkr/current-time (fn [] 10)]
-    (testing "should store limited results"
-      (let [response (atom nil)
-            self {:check-results (atom {})
-                  :max-check-history 3
-                  :checks        (atom {"dummy" {:check (->DummyCheck response)
-                                                 :strategy nil}})
-                  :environments  ["dev"]}]
-        (reset! response 1)
-        (start-the-xraychecks self)
-        (reset! response 2)
-        (start-the-xraychecks self)
-        (reset! response 3)
-        (start-the-xraychecks self)
-        (reset! response 4)
-        (start-the-xraychecks self)
-        (reset! response 5)
-        (start-the-xraychecks self)
-        (reset! response 6)
-        (start-the-xraychecks self)
-        (is (= {"dummy" {"dev" [(chk/->XRayCheckResult :ok 6 0 10)
-                                (chk/->XRayCheckResult :ok 5 0 10)
-                                (chk/->XRayCheckResult :ok 4 0 10)]}}
-               @(:check-results self)))))))
-
 (def parse-check-environments #'chkr/parse-check-environments)
 (def parse-refresh-frequency #'chkr/parse-refresh-frequency)
 (def parse-max-check-history #'chkr/parse-max-check-history)
@@ -53,3 +25,12 @@
     (is (= 99 (parse-max-check-history {:config {:foo-max-check-history "99"}} "foo"))))
   (testing "should parse the nr of checks to be displayed"
     (is (= 9 (parse-nr-checks-displayed {:config {:foo-nr-checks-displayed "9"}} "foo")))))
+
+
+(def build-check-name-env-vecs #'chkr/build-check-name-env-vecs)
+(deftest building-parameters-for-futures
+  (testing "should build a propper parameter vector for all checks"
+    (is (= [["foo" "CheckA" "dev"] ["foo" "CheckA" "test"]
+            ["bar" "CheckB" "dev"] ["bar" "CheckB" "test"]]
+           (build-check-name-env-vecs ["dev" "test"] (atom {"CheckA" {:check "foo"}
+                                                            "CheckB" {:check "bar"}}))))))
