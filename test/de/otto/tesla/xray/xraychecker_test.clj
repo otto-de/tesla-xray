@@ -34,3 +34,13 @@
             ["bar" "CheckB" "dev"] ["bar" "CheckB" "test"]]
            (build-check-name-env-vecs ["dev" "test"] (atom {"CheckA" {:check "foo"}
                                                             "CheckB" {:check "bar"}}))))))
+
+(def sort-results-by-env #'chkr/sort-results-by-env)
+(deftest sorting-results
+  (testing "should sort results by env"
+    (is (= `("D" "A" "C" "B")
+           (keys
+             (sort-results-by-env {"B" ["B"]
+                                   "C" ["C"]
+                                   "D" ["D"]
+                                   "A" ["A"]} ["D" "A" "C" "B"]))))))

@@ -38,7 +38,7 @@
       (serving-with-jetty/add-server :rt-checker)))
 
 (defn -main [& args]
-  (let [{:keys [rt-checker] :as started} (tesla/start (test-system {}))]
+  (let [{:keys [rt-checker] :as started} (tesla/start (test-system {:test-check-environments "dev;test;prod"}))]
     (reset! (:check-results rt-checker) some-data)
     (log/info "test-system started")
     (restart/watch (var -main) started)))
