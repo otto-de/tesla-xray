@@ -10,10 +10,10 @@
 
 (defn random-result [_]
   (case (rand-int 4)
-    0 (chk/->XRayCheckResult :ok "")
-    1 (chk/->XRayCheckResult :error "")
-    2 (chk/->XRayCheckResult :warning "")
-    3 (chk/->XRayCheckResult :none "")))
+    0 (chk/->XRayCheckResult :ok "ok")
+    1 (chk/->XRayCheckResult :error "error")
+    2 (chk/->XRayCheckResult :warning "warning")
+    3 (chk/->XRayCheckResult :none "no status")))
 
 (defn n-random-results [n]
   (into [] (map random-result (range n))))

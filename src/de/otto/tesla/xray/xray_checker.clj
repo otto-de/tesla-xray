@@ -42,21 +42,27 @@
 (defn- single-check-result-as-html [{:keys [status message time-taken stop-time]}]
   (let [stop-time-str (if stop-time (time/from-long stop-time))
         text (str stop-time-str " tt:" time-taken " " message)]
-    [:div {:class (name status)} text]))
+    [:div {:class (str "env-single-results "(name status))} text]))
 
-(defn- render-results-for-env [total-cols nr-checks-displayed [env results]]
-  (let [width (int (/ 97 total-cols))
+(defn- render-results-for-env [strategy total-cols nr-checks-displayed [env results]]
+  (let [overall-status (strategy results)
+        width (int (/ 97 total-cols))
         padding (int (/ 3 total-cols))]
-    [:div {:class "env-results" :style (str "width: " width "%; padding-left: " padding "%;")}
-     [:div {:class "env-header"} env]
-     (map single-check-result-as-html (take nr-checks-displayed results))]))
+    [:div {:class "env-results-container" :style (str "width: " width "%; padding-left: " padding "%;")}
+     [:div {:class (str "overall-" (name overall-status))}
+      [:div {:class (str "env-header " (name overall-status))} env]
+      (map single-check-result-as-html (take nr-checks-displayed results))]]))
 
-(defn- check-results-as-html [nr-checks-displayed [checkname results-for-env]]
-  [:div {:class "check-results"}
-   [:div {:class "check-header"} checkname]
-   (map (partial render-results-for-env (count results-for-env) nr-checks-displayed) results-for-env)])
+(defn- default-strategy [results]
+  (:status (first results)))
 
-(defn- html-response [{:keys [check-results nr-checks-displayed]}]
+(defn- check-results-as-html [checks nr-checks-displayed [checkname results-for-env]]
+  (let [strategy (get-in checks [checkname :strategy] default-strategy)]
+    [:div {:class "check-results"}
+     [:div {:class "check-header"} checkname]
+     (map (partial render-results-for-env strategy (count results-for-env) nr-checks-displayed) results-for-env)]))
+
+(defn- html-response [{:keys [check-results checks nr-checks-displayed]}]
   (hc/html5
     [:head
      [:meta {:charset "utf-8"}]
@@ -66,7 +72,7 @@
      [:header
       [:h1 "XRayCheck Results"]]
      [:div {:class "check-result-container"}
-      (map (partial check-results-as-html nr-checks-displayed) @check-results)]]))
+      (map (partial check-results-as-html checks nr-checks-displayed) @check-results)]]))
 
 (defn- xray-routes [self endpoint]
   (comp/routes
@@ -125,7 +131,7 @@
 
   XRayCheckerProtocol
   (register-check [self check checkname]
-    (register-check-with-strategy self check checkname nil))
+    (register-check-with-strategy self check checkname default-strategy))
 
   (register-check-with-strategy [self check checkname strategy]
     (log/info "registering check with name: " checkname)
