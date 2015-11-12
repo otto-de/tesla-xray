@@ -41,7 +41,8 @@
       (start-single-xraycheck max-check-history check-results check current-env check-name))))
 
 (defn- single-check-result-as-html [{:keys [status message time-taken stop-time]}]
-  (let [text (str (time/from-long stop-time) " tt:" time-taken " " message)]
+  (let [stop-time-str (if stop-time (time/from-long stop-time))
+        text (str stop-time-str " tt: " time-taken " " message)]
     [:div {:class (name status)} text]))
 
 (defn- render-results-for-env [total-cols [env results]]
