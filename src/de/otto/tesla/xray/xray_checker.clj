@@ -72,7 +72,7 @@
   (sort-by (fn [[env _]] (.indexOf environments env)) results-for-env))
 
 (defn- check-results-as-html [environments checks nr-checks-displayed [checkname results-for-env]]
-  (let [strategy (get-in checks [checkname :strategy] default-strategy)]
+  (let [strategy (get-in @checks [checkname :strategy] default-strategy)]
     [:div {:class "check-results"}
      [:div {:class "check-header"} checkname]
      (map (partial render-results-for-env strategy (count results-for-env) nr-checks-displayed) (sort-results-by-env results-for-env environments))]))
