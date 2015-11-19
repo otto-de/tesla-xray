@@ -7,7 +7,8 @@
     [de.otto.tesla.system :as tesla]
     [com.stuartsierra.component :as c]
     [de.otto.tesla.stateful.handler :as handler]
-    [ring.mock.request :as mock]))
+    [ring.mock.request :as mock]
+    [de.otto.tesla.xray.alerting.webhook :as webh]))
 
 (defrecord DummyCheck []
   chk/XRayCheck
@@ -78,6 +79,7 @@
         (try
           (chkr/register-check xray-checker (->FailingCheck) "FailingCheck")
           (start-the-xraychecks xray-checker)
+          (Thread/sleep 10)
           (is (= {"FailingCheck" {"dev" {:last-alert     10
                                          :overall-status :error
                                          :results        [(chk/->XRayCheckResult :error "failing message")]}}}
@@ -114,7 +116,7 @@
           (chkr/register-check xray-checker (->WaitingDummyCheck 100) "DummyCheck3")
           (chkr/register-check xray-checker (->WaitingDummyCheck 200) "DummyCheck4")
           (chkr/register-check xray-checker (->WaitingDummyCheck 200) "DummyCheck5")
-          (start-the-xraychecks xray-checker)                                ; wait for start
+          (start-the-xraychecks xray-checker)               ; wait for start
           (is (= {"DummyCheck1" {"dev" {:overall-status :ok
                                         :results        [(chk/->XRayCheckResult :ok 0 0 10)]}}}
                  @(:check-results xray-checker)))
@@ -144,8 +146,9 @@
 (def build-check-name-env-vecs #'chkr/build-check-name-env-vecs)
 (deftest building-parameters-for-futures
   (testing "should build a propper parameter vector for all checks"
-    (is (= [[(chkr/->RegisteredXRayCheck "A" "A" "A") "dev"] [(chkr/->RegisteredXRayCheck "A" "A" "A") "test"]
-            [(chkr/->RegisteredXRayCheck "B" "B" "B") "dev"] [(chkr/->RegisteredXRayCheck "B" "B" "B") "test"]]
-           (build-check-name-env-vecs ["dev" "test"] (atom {"CheckA" (chkr/->RegisteredXRayCheck "A" "A" "A")
-                                                            "CheckB" (chkr/->RegisteredXRayCheck "B" "B" "B")}))))))
-
+    (let [check-a (chkr/->RegisteredXRayCheck "A" "A" "A")
+          check-b (chkr/->RegisteredXRayCheck "B" "B" "B")]
+      (is (= [[check-a "dev"] [check-a "test"]
+              [check-b "dev"] [check-b "test"]]
+             (build-check-name-env-vecs ["dev" "test"] (atom {"CheckA" check-a
+                                                              "CheckB" check-b})))))))

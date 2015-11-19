@@ -26,9 +26,9 @@
   (let [limited-results (take (- max-check-history 1) old-results)]
     (conj limited-results result)))
 
-(defn send-alerts! [{:keys [results]} {:keys [incoming-webhook]} check-name current-env]
+(defn send-alerts! [results {:keys [incoming-webhook]} check-name current-env]
   (let [last-result-message (:message (first results))
-        alert-message (str check-name" failed on "current-env" with message: "last-result-message)]
+        alert-message (str check-name " failed on " current-env " with message: " last-result-message)]
     (when incoming-webhook
       (webh/send-webhook-message! incoming-webhook alert-message))))
 
@@ -37,27 +37,27 @@
       (> (- (current-time) last-alert)
          schedule-time)))
 
-(defn do-alerting! [{:keys [overall-status last-alert] :as result-map} {:keys [schedule-time] :as alerting} current-env check-name]
-  (if (= :error overall-status)
-    (if (should-send-another-alert? schedule-time last-alert)
-      (doto (assoc result-map :last-alert (current-time))
-        (send-alerts! alerting check-name current-env))
-      result-map)
-    (dissoc result-map :last-alert)))
+(defn do-alerting! [check-results {:keys [schedule-time] :as alerting} check-name current-env]
+  (let [{:keys [results overall-status last-alert]} (get-in @check-results [check-name current-env])]
+    (when (and
+            (= :error overall-status)
+            (should-send-another-alert? schedule-time last-alert))
+      (send-alerts! results alerting check-name current-env)
+      (swap! check-results assoc-in [check-name current-env :last-alert] (current-time)))))
 
 (defn update-overall-status [{:keys [results] :as result-map} strategy]
   (let [new-status (strategy results)]
     (assoc result-map :overall-status new-status)))
 
-(defn- update+handle-result! [{:keys [max-check-history alerting]} ^RegisteredXRayCheck {:keys [check-name strategy]} result current-env old-results]
+(defn- update+handle-result! [result max-check-history strategy old-results]
   (-> (or old-results {})
       (update :results append-result result max-check-history)
-      (update-overall-status strategy)
-      (do-alerting! alerting current-env check-name)))
+      (update-overall-status strategy)))
 
-(defn- update-results! [{:keys [check-results] :as self} ^RegisteredXRayCheck {:keys [check-name] :as check} current-env result]
-  (let [update-fn (partial update+handle-result! self check result current-env)]
-    (swap! check-results update-in [check-name current-env] update-fn)))
+(defn- update-results! [{:keys [check-results alerting max-check-history]} {:keys [check-name strategy]} current-env result]
+  (let [update-fn (partial update+handle-result! result max-check-history strategy)]
+    (swap! check-results update-in [check-name current-env] update-fn)
+    (do-alerting! check-results alerting check-name current-env)))
 
 (defn- check-result-with-timings [xray-check current-env]
   (let [start-time (current-time)

@@ -88,3 +88,27 @@
             (is (= ["DummyCheckA failed on dev with message: error-message" "DummyCheckA failed on dev with message: error-message"] @webhook-alerts-send)))
         (finally
           (comp/stop started)))))) )
+
+
+(deftest check-nr-of-alerts
+  (let [should-fail? (atom false)
+        webhook-alerts-send (atom [])]
+    (with-redefs [webh/send-webhook-message! (fn [_ msg] (swap! webhook-alerts-send conj msg))]
+      (let [started (comp/start (test-system {:test-check-frequency        ""
+                                              :test-check-environments     "dev;test;bar;baz"
+                                              :test-alerting-schedule-time "100"
+                                              :test-incoming-webhook-url   "https://a-valid-url.to.start.alerting"
+                                              :test-max-check-history      "3"}))
+            xray-checker (:xray-checker started)]
+        (try
+          (testing "should register the check"
+            (chkr/register-check xray-checker (->ErrorCheck should-fail?) "DummyCheckA")
+            (reset! should-fail? true)
+            (start-the-xraychecks xray-checker)
+            (is (= 4 (count @webhook-alerts-send)))
+            (is (= #{"DummyCheckA failed on baz with message: error-message"
+                     "DummyCheckA failed on test with message: error-message"
+                     "DummyCheckA failed on dev with message: error-message"
+                     "DummyCheckA failed on bar with message: error-message"} (into #{} @webhook-alerts-send))))
+          (finally
+            (comp/stop started)))))))
