@@ -64,7 +64,7 @@
                                           :results        [(chk/->XRayCheckResult :error "error-message")
                                                            (chk/->XRayCheckResult :ok "ok-message")]}}}
                    (without-timings @(:check-results xray-checker))))
-            (is (= ["error-message"] @webhook-alerts-send)))
+            (is (= ["DummyCheckA failed on dev with message: error-message"] @webhook-alerts-send)))
 
           (testing "should execute the third run without alert"
             (start-the-xraychecks xray-checker)
@@ -74,7 +74,7 @@
                                                            (chk/->XRayCheckResult :error "error-message")
                                                            (chk/->XRayCheckResult :ok "ok-message")]}}}
                    (without-timings @(:check-results xray-checker))))
-            (is (= ["error-message"] @webhook-alerts-send)))
+            (is (= ["DummyCheckA failed on dev with message: error-message"] @webhook-alerts-send)))
 
           (testing "should execute the fourth run with alert"
             (Thread/sleep 100); wait for alerting schedule time
@@ -85,6 +85,6 @@
                                                            (chk/->XRayCheckResult :error "error-message")
                                                            (chk/->XRayCheckResult :error "error-message")]}}}
                    (without-timings @(:check-results xray-checker))))
-            (is (= ["error-message" "error-message"] @webhook-alerts-send)))
+            (is (= ["DummyCheckA failed on dev with message: error-message" "DummyCheckA failed on dev with message: error-message"] @webhook-alerts-send)))
         (finally
           (comp/stop started)))))) )
