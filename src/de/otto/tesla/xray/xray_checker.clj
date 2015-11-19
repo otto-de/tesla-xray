@@ -18,11 +18,15 @@
   (start-check [_ env]
     (chk/start-check check env)))
 
-(defn- store-check-result [max-check-history result old-results]
+(defn- append-result [old-results result max-check-history]
   (let [limited-results (take (- max-check-history 1) old-results)]
     (conj limited-results result)))
 
-(defn- store-result [check-results ^RegisteredXRayCheck {:keys [check-name]} current-env max-check-history result]
+(defn- store-check-result [max-check-history result old-results]
+  (-> (or old-results {})
+      (update :results append-result result max-check-history)))
+
+(defn- store-result [check-results ^RegisteredXRayCheck {:keys [check-name] :as check} current-env max-check-history result]
   (let [update-fn (partial store-check-result max-check-history result)]
     (swap! check-results update-in [check-name current-env] update-fn)))
 

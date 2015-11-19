@@ -8,7 +8,7 @@
         text (str stop-time-str " tt:" time-taken " " message)]
     [:div {:class (str "env-single-results " (name status))} text]))
 
-(defn- render-results-for-env [strategy total-cols nr-checks-displayed [env results]]
+(defn- render-results-for-env [strategy total-cols nr-checks-displayed [env {:keys [results]}]]
   (let [overall-status (strategy results)
         width (int (/ 97 total-cols))
         padding (int (/ 3 total-cols))]
