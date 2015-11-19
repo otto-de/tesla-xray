@@ -22,12 +22,16 @@
   (let [limited-results (take (- max-check-history 1) old-results)]
     (conj limited-results result)))
 
-(defn- store-check-result [max-check-history result old-results]
+(defn update-overall-status [{:keys [results] :as result-map} strategy]
+  (assoc result-map :overall-status (strategy results)))
+
+(defn- store-check-result [^RegisteredXRayCheck {:keys [strategy]} max-check-history result old-results]
   (-> (or old-results {})
-      (update :results append-result result max-check-history)))
+      (update :results append-result result max-check-history)
+      (update-overall-status strategy)))
 
 (defn- store-result [check-results ^RegisteredXRayCheck {:keys [check-name] :as check} current-env max-check-history result]
-  (let [update-fn (partial store-check-result max-check-history result)]
+  (let [update-fn (partial store-check-result check max-check-history result)]
     (swap! check-results update-in [check-name current-env] update-fn)))
 
 (defn- current-time []
@@ -70,6 +74,9 @@
        :headers {"Content-Type" "text/html"}
        :body    (eo/render-env-overview self)})))
 
+(defn default-strategy [results]
+  (:status (first results)))
+
 (defrecord XrayChecker [which-checker handler config registered-checks]
   c/Lifecycle
   (start [self]
@@ -103,7 +110,7 @@
 
   XRayCheckerProtocol
   (register-check [self check checkname]
-    (register-check-with-strategy self check checkname chk/default-strategy))
+    (register-check-with-strategy self check checkname default-strategy))
 
   (register-check-with-strategy [self check checkname strategy]
     (log/info "registering check with name: " checkname)

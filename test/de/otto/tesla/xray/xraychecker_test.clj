@@ -41,23 +41,29 @@
         (chkr/register-check rt-checker (->DummyCheck) "DummyCheckA")
         (chkr/register-check rt-checker (->DummyCheck) "DummyCheckB")
         (try
-          (is (= {"DummyCheckA" (chkr/->RegisteredXRayCheck (->DummyCheck) "DummyCheckA" chk/default-strategy)
-                  "DummyCheckB" (chkr/->RegisteredXRayCheck (->DummyCheck) "DummyCheckB" chk/default-strategy)}
+          (is (= {"DummyCheckA" (chkr/->RegisteredXRayCheck (->DummyCheck) "DummyCheckA" chkr/default-strategy)
+                  "DummyCheckB" (chkr/->RegisteredXRayCheck (->DummyCheck) "DummyCheckB" chkr/default-strategy)}
                  @(:checks rt-checker)))
           (Thread/sleep 100)
-          (is (= {"DummyCheckA" {"dev" {:results [(chk/->XRayCheckResult :ok "dummy-message" 0 10)]}}
-                  "DummyCheckB" {"dev" {:results [(chk/->XRayCheckResult :ok "dummy-message" 0 10)]}}}
+          (is (= {"DummyCheckA" {"dev" {:overall-status :ok
+                                        :results [(chk/->XRayCheckResult :ok "dummy-message" 0 10)]}}
+                  "DummyCheckB" {"dev" {:overall-status :ok
+                                        :results [(chk/->XRayCheckResult :ok "dummy-message" 0 10)]}}}
                  @(:check-results rt-checker)))
           (Thread/sleep 100)
-          (is (= {"DummyCheckA" {"dev" {:results [(chk/->XRayCheckResult :ok "dummy-message" 0 10)
+          (is (= {"DummyCheckA" {"dev" {:overall-status :ok
+                                        :results [(chk/->XRayCheckResult :ok "dummy-message" 0 10)
                                                   (chk/->XRayCheckResult :ok "dummy-message" 0 10)]}}
-                  "DummyCheckB" {"dev" {:results [(chk/->XRayCheckResult :ok "dummy-message" 0 10)
+                  "DummyCheckB" {"dev" {:overall-status :ok
+                                        :results [(chk/->XRayCheckResult :ok "dummy-message" 0 10)
                                                   (chk/->XRayCheckResult :ok "dummy-message" 0 10)]}}}
                  @(:check-results rt-checker)))
           (Thread/sleep 100)
-          (is (= {"DummyCheckA" {"dev" {:results [(chk/->XRayCheckResult :ok "dummy-message" 0 10)
+          (is (= {"DummyCheckA" {"dev" {:overall-status :ok
+                                        :results [(chk/->XRayCheckResult :ok "dummy-message" 0 10)
                                                   (chk/->XRayCheckResult :ok "dummy-message" 0 10)]}}
-                  "DummyCheckB" {"dev" {:results [(chk/->XRayCheckResult :ok "dummy-message" 0 10)
+                  "DummyCheckB" {"dev" {:overall-status :ok
+                                        :results [(chk/->XRayCheckResult :ok "dummy-message" 0 10)
                                                   (chk/->XRayCheckResult :ok "dummy-message" 0 10)]}}}
                  @(:check-results rt-checker)))
           (finally
@@ -71,7 +77,8 @@
       (try
         (chkr/register-check rt-checker (->FailingCheck) "FailingCheck")
         (Thread/sleep 150)
-        (is (= {"FailingCheck" {"dev" {:results [(chk/->XRayCheckResult :error "failing message")]}}}
+        (is (= {"FailingCheck" {"dev" {:overall-status :error
+                                       :results [(chk/->XRayCheckResult :error "failing message")]}}}
                @(:check-results rt-checker)))
         (finally
           (comp/stop started))))))
@@ -106,24 +113,33 @@
           (chkr/register-check rt-checker (->WaitingDummyCheck 200) "DummyCheck4")
           (chkr/register-check rt-checker (->WaitingDummyCheck 200) "DummyCheck5")
           (Thread/sleep 100)                                ; wait for start
-          (is (= {"DummyCheck1" {"dev" {:results [(chk/->XRayCheckResult :ok 0 0 10)]}}}
+          (is (= {"DummyCheck1" {"dev" {:overall-status :ok
+                                        :results [(chk/->XRayCheckResult :ok 0 0 10)]}}}
                  @(:check-results rt-checker)))
           (Thread/sleep 100)
-          (is (= {"DummyCheck1" {"dev" {:results [(chk/->XRayCheckResult :ok 0 0 10)
+          (is (= {"DummyCheck1" {"dev" {:overall-status :ok
+                                        :results [(chk/->XRayCheckResult :ok 0 0 10)
                                                   (chk/->XRayCheckResult :ok 0 0 10)]}}
-                  "DummyCheck2" {"dev" {:results [(chk/->XRayCheckResult :ok 100 0 10)]}}
-                  "DummyCheck3" {"dev" {:results [(chk/->XRayCheckResult :ok 100 0 10)]}}}
+                  "DummyCheck2" {"dev" {:overall-status :ok
+                                        :results [(chk/->XRayCheckResult :ok 100 0 10)]}}
+                  "DummyCheck3" {"dev" {:overall-status :ok
+                                        :results [(chk/->XRayCheckResult :ok 100 0 10)]}}}
                  @(:check-results rt-checker)))
           (Thread/sleep 100)
-          (is (= {"DummyCheck1" {"dev" {:results [(chk/->XRayCheckResult :ok 0 0 10)
+          (is (= {"DummyCheck1" {"dev" {:overall-status :ok
+                                        :results [(chk/->XRayCheckResult :ok 0 0 10)
                                                   (chk/->XRayCheckResult :ok 0 0 10)
                                                   (chk/->XRayCheckResult :ok 0 0 10)]}}
-                  "DummyCheck2" {"dev" {:results [(chk/->XRayCheckResult :ok 100 0 10)
+                  "DummyCheck2" {"dev" {:overall-status :ok
+                                        :results [(chk/->XRayCheckResult :ok 100 0 10)
                                                   (chk/->XRayCheckResult :ok 100 0 10)]}}
-                  "DummyCheck3" {"dev" {:results [(chk/->XRayCheckResult :ok 100 0 10)
+                  "DummyCheck3" {"dev" {:overall-status :ok
+                                        :results [(chk/->XRayCheckResult :ok 100 0 10)
                                                   (chk/->XRayCheckResult :ok 100 0 10)]}}
-                  "DummyCheck4" {"dev" {:results [(chk/->XRayCheckResult :ok 200 0 10)]}}
-                  "DummyCheck5" {"dev" {:results [(chk/->XRayCheckResult :ok 200 0 10)]}}}
+                  "DummyCheck4" {"dev" {:overall-status :ok
+                                        :results [(chk/->XRayCheckResult :ok 200 0 10)]}}
+                  "DummyCheck5" {"dev" {:overall-status :ok
+                                        :results [(chk/->XRayCheckResult :ok 200 0 10)]}}}
                  @(:check-results rt-checker)))
           (finally
             (comp/stop started)))))))
