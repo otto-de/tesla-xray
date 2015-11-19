@@ -13,41 +13,48 @@
   (register-check [self check checkname])
   (register-check-with-strategy [self check checkname strategy]))
 
-(defn- store-check-result [max-check-history result results]
-  (let [limited-results (take (- max-check-history 1) results)]
+(defrecord RegisteredXRayCheck [check check-name strategy]
+  chk/XRayCheck
+  (start-check [_ env]
+    (chk/start-check check env)))
+
+(defn- store-check-result [max-check-history result old-results]
+  (let [limited-results (take (- max-check-history 1) old-results)]
     (conj limited-results result)))
 
-(defn- store-result [check-results check-name current-env max-check-history result]
-  (swap! check-results update-in [check-name current-env] (partial store-check-result max-check-history result)))
+(defn- store-result [check-results ^RegisteredXRayCheck {:keys [check-name]} current-env max-check-history result]
+  (let [update-fn (partial store-check-result max-check-history result)]
+    (swap! check-results update-in [check-name current-env] update-fn)))
 
 (defn- current-time []
   (System/currentTimeMillis))
 
-(defn- start-single-xraycheck [max-check-history check-results [check check-name current-env]]
+(defn- start-single-xraycheck [max-check-history check-results [^RegisteredXRayCheck check current-env]];TODO
   (try
     (let [start-time (current-time)
-          xray-chk-result (chk/start-check check current-env)
-          stop-time (current-time)]
-      (store-result check-results check-name current-env max-check-history (chk/with-timings xray-chk-result (- stop-time start-time) stop-time)))
+          check-result (chk/start-check check current-env)
+          stop-time (current-time)
+          result-with-timings (chk/with-timings check-result (- stop-time start-time) stop-time)]
+      (store-result check-results check current-env max-check-history result-with-timings))
     (catch Exception e
-      (log/error e "an error occured when executing check " check-name (.getMessage e))
-      (store-result check-results check-name current-env max-check-history (chk/->XRayCheckResult :error (.getMessage e))))))
+      (log/error e "an error occured when executing check " (:check-name check) (.getMessage e))
+      (store-result check-results check current-env max-check-history (chk/->XRayCheckResult :error (.getMessage e))))))
 
 (defn- wrap-with [a-fn]
   (partial deref (future (a-fn))))
 
-(defn- with-evironments [environments check check-name]
-  (map (fn [cenv] [check check-name cenv]) environments))
+(defn- with-evironments [environments check]
+  (map (fn [env] [check env]) environments))
 
 (defn- build-check-name-env-vecs [environments checks]
   (->> @checks
-       (mapcat (fn [[check-name {:keys [check]}]] (with-evironments environments check check-name)))
+       (mapcat (fn [[_ ^RegisteredXRayCheck check]] (with-evironments environments check)))
        (into [])))
 
 (defn- start-the-xraychecks [{:keys [max-check-history check-results checks environments]}]
   (let [pstart-single-xraycheck (partial start-single-xraycheck max-check-history check-results) ;check name env - missing
-        check-name-env-vecs (build-check-name-env-vecs environments checks)
-        futures (map #(wrap-with (partial pstart-single-xraycheck %)) check-name-env-vecs)]
+        checks+env (build-check-name-env-vecs environments checks)
+        futures (map #(wrap-with (partial pstart-single-xraycheck %)) checks+env)]
     (log/info "Starting checks")
     (apply pcalls futures)))
 
@@ -96,8 +103,7 @@
 
   (register-check-with-strategy [self check checkname strategy]
     (log/info "registering check with name: " checkname)
-    (swap! (:checks self) assoc checkname {:check    check
-                                           :strategy strategy})))
+    (swap! (:checks self) assoc checkname (->RegisteredXRayCheck check checkname strategy))))
 
 (defn new-xraychecker [which-checker]
   (map->XrayChecker {:which-checker which-checker}))
