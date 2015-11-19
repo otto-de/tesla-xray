@@ -31,27 +31,36 @@
   (-> (tesla/base-system (assoc runtime-config :name "test-system"))
       (assoc :rt-checker (c/using (chkr/new-xraychecker "test") [:handler :config]))))
 
-(deftest registering-and-storing-results
-  (testing "should register and check and store its results"
+(deftest checks-and-check-results
+  (testing "should register, check and store results"
     (with-redefs [chkr/current-time (fn [] 10)]
       (let [started (comp/start (test-system {:test-check-frequency    "100"
                                               :test-check-environments "dev"
-                                              :test-max-check-history "2"}))
+                                              :test-max-check-history  "2"}))
             rt-checker (:rt-checker started)]
+        (chkr/register-check rt-checker (->DummyCheck) "DummyCheckA")
+        (chkr/register-check rt-checker (->DummyCheck) "DummyCheckB")
         (try
-          (chkr/register-check rt-checker (->DummyCheck) "DummyCheck")
-          (is (= ["DummyCheck"] (keys @(:checks rt-checker))))
-          (is (= DummyCheck (class (:check (first (vals @(:checks rt-checker)))))))
+          (is (= {"DummyCheckA" {:check    (->DummyCheck)
+                                 :strategy chk/default-strategy}
+                  "DummyCheckB" {:check    (->DummyCheck)
+                                 :strategy chk/default-strategy}}
+                 @(:checks rt-checker)))
           (Thread/sleep 100)
-          (is (= {"DummyCheck" {"dev" [(chk/->XRayCheckResult :ok "dummy-message" 0 10)]}}
+          (is (= {"DummyCheckA" {"dev" [(chk/->XRayCheckResult :ok "dummy-message" 0 10)]}
+                  "DummyCheckB" {"dev" [(chk/->XRayCheckResult :ok "dummy-message" 0 10)]}}
                  @(:check-results rt-checker)))
           (Thread/sleep 100)
-          (is (= {"DummyCheck" {"dev" [(chk/->XRayCheckResult :ok "dummy-message" 0 10)
-                                       (chk/->XRayCheckResult :ok "dummy-message" 0 10)]}}
+          (is (= {"DummyCheckA" {"dev" [(chk/->XRayCheckResult :ok "dummy-message" 0 10)
+                                        (chk/->XRayCheckResult :ok "dummy-message" 0 10)]}
+                  "DummyCheckB" {"dev" [(chk/->XRayCheckResult :ok "dummy-message" 0 10)
+                                        (chk/->XRayCheckResult :ok "dummy-message" 0 10)]}}
                  @(:check-results rt-checker)))
           (Thread/sleep 100)
-          (is (= {"DummyCheck" {"dev" [(chk/->XRayCheckResult :ok "dummy-message" 0 10)
-                                       (chk/->XRayCheckResult :ok "dummy-message" 0 10)]}}
+          (is (= {"DummyCheckA" {"dev" [(chk/->XRayCheckResult :ok "dummy-message" 0 10)
+                                        (chk/->XRayCheckResult :ok "dummy-message" 0 10)]}
+                  "DummyCheckB" {"dev" [(chk/->XRayCheckResult :ok "dummy-message" 0 10)
+                                        (chk/->XRayCheckResult :ok "dummy-message" 0 10)]}}
                  @(:check-results rt-checker)))
           (finally
             (comp/stop started)))))))
@@ -63,7 +72,7 @@
           rt-checker (:rt-checker started)]
       (try
         (chkr/register-check rt-checker (->FailingCheck) "FailingCheck")
-        (Thread/sleep 100)
+        (Thread/sleep 150)
         (is (= {"FailingCheck" {"dev" [(chk/->XRayCheckResult :error "failing message")]}}
                @(:check-results rt-checker)))
         (finally
@@ -98,7 +107,6 @@
           (chkr/register-check rt-checker (->WaitingDummyCheck 100) "DummyCheck3")
           (chkr/register-check rt-checker (->WaitingDummyCheck 200) "DummyCheck4")
           (chkr/register-check rt-checker (->WaitingDummyCheck 200) "DummyCheck5")
-          ;(start-the-xraychecks rt-checker)
           (Thread/sleep 100)                                ; wait for start
           (is (= {"DummyCheck1" {"dev" [(chk/->XRayCheckResult :ok 0 0 10)]}}
                  @(:check-results rt-checker)))

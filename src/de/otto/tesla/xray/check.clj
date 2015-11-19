@@ -16,3 +16,6 @@
    (map->XRayCheckResult {:status status :message message :time-taken time-taken :stop-time stop-time}))
   ([status message]
    (map->XRayCheckResult {:status status :message message})))
+
+(defn default-strategy [results]
+  (:status (first results)))
