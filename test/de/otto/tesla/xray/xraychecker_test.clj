@@ -93,7 +93,7 @@
         (try
           (chkr/register-check rt-checker (->DummyCheck) "DummyCheck")
           (start-the-xraychecks rt-checker)
-          (let [response (handlers (mock/request :get "/rt-checker"))]
+          (let [response (handlers (mock/request :get "/xray-checker"))]
             (is (= 200 (:status response)))
             (is (= {"Content-Type" "text/html"} (:headers response)))
             (is (= true (.contains (:body response) "2015-11-10T10:40:24.778Z tt:0 dummy-message"))))

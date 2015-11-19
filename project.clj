@@ -6,6 +6,7 @@
   :dependencies [[org.clojure/clojure "1.7.0"]
                  [overtone/at-at "1.2.0"]
                  [hiccup "1.0.5"]
+                 [clj-http "2.0.0"]
                  [clj-time "0.11.0"]]
 
   :provided {:dependencies [[de.otto/tesla-basic-logging "0.1.4"]

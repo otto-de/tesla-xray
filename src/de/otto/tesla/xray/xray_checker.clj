@@ -7,7 +7,8 @@
             [de.otto.tesla.xray.conf.reading-properties :as props]
             [compojure.route :as croute]
             [de.otto.tesla.stateful.handler :as hndl]
-            [de.otto.tesla.xray.check :as chk]))
+            [de.otto.tesla.xray.check :as chk]
+            [de.otto.tesla.xray.alerting.webhook :as webh]))
 
 (defprotocol XRayCheckerProtocol
   (register-check [self check checkname])
@@ -22,31 +23,42 @@
   (let [limited-results (take (- max-check-history 1) old-results)]
     (conj limited-results result)))
 
-(defn update-overall-status [{:keys [results] :as result-map} strategy]
-  (assoc result-map :overall-status (strategy results)))
+(defn send-alerts [{:keys [results overall-status]} {:keys [incoming-webhook]}]
+  (when (= :error overall-status)
+    (let [last-result-message (:message (first results))]
+      (when incoming-webhook
+        (webh/send-webhook-message incoming-webhook last-result-message)))))
 
-(defn- store-check-result [^RegisteredXRayCheck {:keys [strategy]} max-check-history result old-results]
+(defn update-overall-status [{:keys [results] :as result-map} strategy]
+  (let [new-status (strategy results)]
+    (assoc result-map :overall-status new-status)))
+
+(defn- store+handle-result [{:keys [max-check-history alerting]} ^RegisteredXRayCheck {:keys [strategy]} result old-results]
   (-> (or old-results {})
       (update :results append-result result max-check-history)
-      (update-overall-status strategy)))
+      (update-overall-status strategy)
+      (doto (send-alerts alerting))))
 
-(defn- store-result [check-results ^RegisteredXRayCheck {:keys [check-name] :as check} current-env max-check-history result]
-  (let [update-fn (partial store-check-result check max-check-history result)]
+(defn- store-result [{:keys [check-results] :as self} ^RegisteredXRayCheck {:keys [check-name] :as check} current-env result]
+  (let [update-fn (partial store+handle-result self check result)]
     (swap! check-results update-in [check-name current-env] update-fn)))
 
 (defn- current-time []
   (System/currentTimeMillis))
 
-(defn- start-single-xraycheck [max-check-history check-results [^RegisteredXRayCheck check current-env]];TODO
+(defn- check-result-with-timings [xray-check current-env]
+  (let [start-time (current-time)
+        check-result (chk/start-check xray-check current-env)
+        stop-time (current-time)]
+    (chk/with-timings check-result (- stop-time start-time) stop-time)))
+
+(defn- start-single-xraycheck [self [^RegisteredXRayCheck xray-check current-env]]
   (try
-    (let [start-time (current-time)
-          check-result (chk/start-check check current-env)
-          stop-time (current-time)
-          result-with-timings (chk/with-timings check-result (- stop-time start-time) stop-time)]
-      (store-result check-results check current-env max-check-history result-with-timings))
+    (let [result (check-result-with-timings xray-check current-env)]
+      (store-result self xray-check current-env result))
     (catch Exception e
-      (log/error e "an error occured when executing check " (:check-name check) (.getMessage e))
-      (store-result check-results check current-env max-check-history (chk/->XRayCheckResult :error (.getMessage e))))))
+      (log/error e "an error occured when executing check " (:check-name xray-check) (.getMessage e))
+      (store-result self xray-check current-env (chk/->XRayCheckResult :error (.getMessage e))))))
 
 (defn- wrap-with [a-fn]
   (partial deref (future (a-fn))))
@@ -59,14 +71,14 @@
        (mapcat (fn [[_ ^RegisteredXRayCheck check]] (with-evironments environments check)))
        (into [])))
 
-(defn- start-the-xraychecks [{:keys [max-check-history check-results checks environments]}]
-  (let [pstart-single-xraycheck (partial start-single-xraycheck max-check-history check-results) ;check name env - missing
+(defn- start-the-xraychecks [{:keys [checks environments] :as self}]
+  (let [pstart-single-xraycheck (partial start-single-xraycheck self) ;check name env - missing
         checks+env (build-check-name-env-vecs environments checks)
         futures (map #(wrap-with (partial pstart-single-xraycheck %)) checks+env)]
     (log/info "Starting checks")
     (apply pcalls futures)))
 
-(defn- xray-routes [self endpoint]
+(defn- xray-routes [{:keys [endpoint] :as self}]
   (comp/routes
     (croute/resources "/")
     (comp/GET endpoint []
@@ -82,22 +94,20 @@
   (start [self]
     (log/info "-> starting XrayChecker")
     (let [executor (at/mk-pool)
-          nr-checks-displayed (props/parse-nr-checks-displayed config which-checker)
-          max-check-history (props/parse-max-check-history config which-checker)
-          refresh-frequency (props/parse-refresh-frequency config which-checker)
-          environments (props/parse-check-environments config which-checker)
-          endpoint (props/parse-endpoint config which-checker)
           new-self (assoc self
-                     :nr-checks-displayed nr-checks-displayed
-                     :max-check-history max-check-history
-                     :environments environments
+                     :refresh-frequency (props/parse-refresh-frequency config which-checker)
+                     :nr-checks-displayed (props/parse-nr-checks-displayed config which-checker)
+                     :max-check-history (props/parse-max-check-history config which-checker)
+                     :endpoint (props/parse-endpoint config which-checker)
+                     :alerting {:incoming-webhook (props/parse-incoming-webhook-url config which-checker)}
+                     :environments (props/parse-check-environments config which-checker)
                      :executor executor
                      :checks (atom {})
                      :check-results (atom {}))]
-      (hndl/register-handler handler (xray-routes new-self endpoint))
-      (log/info "running checks every " refresh-frequency "ms")
+      (hndl/register-handler handler (xray-routes new-self))
+      (log/info "running checks every " (:refresh-frequency new-self) "ms")
       (assoc new-self
-        :schedule (at/every refresh-frequency
+        :schedule (at/every (:refresh-frequency new-self)
                             #(start-the-xraychecks new-self)
                             executor))))
 
