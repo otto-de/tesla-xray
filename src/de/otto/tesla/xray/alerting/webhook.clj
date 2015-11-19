@@ -6,7 +6,7 @@
 
 (defn payload [msg] { :text msg })
 
-(defn send-webhook-message [url msg]
+(defn send-webhook-message! [url msg]
   (try
     (http/post url {:body (json/write-str (payload msg))})
     (catch Exception e

@@ -5,7 +5,9 @@
     (if (empty? env-str) [] (clojure.string/split env-str #";"))))
 
 (defn parse-refresh-frequency [config which-checker]
-  (Integer/parseInt (get-in config [:config (keyword (str which-checker "-check-frequency"))] "60000")))
+  (let [frequency (get-in config [:config (keyword (str which-checker "-check-frequency"))] "60000")]
+    (if-not (empty? frequency)
+      (Integer/parseInt frequency))))
 
 (defn parse-endpoint [config which-checker]
   (get-in config [:config (keyword (str which-checker "-check-endpoint"))] "/xray-checker"))
@@ -21,3 +23,8 @@
     (if-not (empty? url)
       url)))
 
+(defn parse-alerting-schedule-time [config which-checker]
+  (let [schedule-time (get-in config [:config (keyword (str which-checker "-alerting-schedule-time"))])]
+    (if-not (empty? schedule-time)
+      (Integer/parseInt schedule-time)
+      (* 1000 60 5))))
