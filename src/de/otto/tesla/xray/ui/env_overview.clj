@@ -1,6 +1,6 @@
 (ns de.otto.tesla.xray.ui.env-overview
   (:require [hiccup.page :as hc]
-            [de.otto.tesla.xray.check :as chk]
+            [ring.util.codec :as co]
             [clj-time.coerce :as time]))
 
 (defn- single-check-result-as-html [{:keys [status message time-taken stop-time]}]
@@ -9,9 +9,11 @@
     [:div {:class (name status)} text]))
 
 (defn wrapped-with-links-to-detail-page [the-html show-links? endpoint check-name current-env]
-  (if show-links?
-    [:a {:href (str endpoint"/"check-name"/"current-env)} the-html]
-    the-html))
+  (let [url-ecoded-check-name (co/url-encode check-name)
+        url-encoded-env (co/url-encode current-env)]
+    (if show-links?
+      [:a {:href (str endpoint "/" url-ecoded-check-name "/" url-encoded-env)} the-html]
+      the-html)))
 
 (defn render-results-for-env [total-cols nr-checks-displayed checkname endpoint show-links? [env {:keys [results overall-status]}]]
   (let [width (int (/ 97 total-cols))

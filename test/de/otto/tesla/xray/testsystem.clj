@@ -18,21 +18,21 @@
 (defn n-random-results [n]
   (let [results (into [] (map random-result (range n)))]
     {:overall-status (chkr/default-strategy results)
-     :results results}))
+     :results        results}))
 
 (def some-data
-  {"CheckA" {"dev"  (n-random-results 50)
-             "test" (n-random-results 100)
-             "prod" (n-random-results 10)}
-   "CheckB" {"dev"  (n-random-results 20)
-             "test" (n-random-results 60)
-             "prod" (n-random-results 20)}
-   "CheckC" {"dev"  (n-random-results 70)
-             "test" (n-random-results 40)
-             "prod" (n-random-results 30)}
-   "CheckD" {"dev"  (n-random-results 50)
-             "test" (n-random-results 24)
-             "prod" (n-random-results 5)}})
+  {"CheckA"                                    {"dev"  (n-random-results 50)
+                                                "test" (n-random-results 100)
+                                                "prod" (n-random-results 10)}
+   "CheckB"                                    {"dev"  (n-random-results 20)
+                                                "test" (n-random-results 60)
+                                                "prod" (n-random-results 20)}
+   "CheckC"                                    {"dev"  (n-random-results 70)
+                                                "test" (n-random-results 40)
+                                                "prod" (n-random-results 30)}
+   "CheckD with special chars / (/)(\\\")%& {" {"dev"  (n-random-results 50)
+                                                "test" (n-random-results 24)
+                                                "prod" (n-random-results 5)}})
 
 (defn test-system [runtime-config]
   (-> (tesla/base-system (assoc runtime-config :name "test-system"))
@@ -41,7 +41,7 @@
 
 (defn -main [& args]
   (let [{:keys [rt-checker] :as started} (tesla/start (test-system {:test-nr-checks-displayed "1"
-                                                                    :test-check-environments "dev;test;prod"}))]
+                                                                    :test-check-environments  "dev;test;prod"}))]
     (reset! (:check-results rt-checker) some-data)
     (log/info "test-system started")
     (restart/watch (var -main) started)))

@@ -1,4 +1,4 @@
-(defproject de.otto/tesla-xray "0.2.8"
+(defproject de.otto/tesla-xray "0.2.9"
   :description "a component to execute and visualize checks written in clj"
   :url "https://github.com/otto-de/tesla-x-ray.git"
   :license {:name "Apache License 2.0"
@@ -7,6 +7,7 @@
                  [overtone/at-at "1.2.0"]
                  [hiccup "1.0.5"]
                  [clj-http "2.0.0"]
+                 [ring/ring-codec "1.0.0"]
                  [clj-time "0.11.0"]]
 
   :provided {:dependencies [[de.otto/tesla-basic-logging "0.1.4"]
