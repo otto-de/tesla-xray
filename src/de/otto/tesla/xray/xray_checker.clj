@@ -5,6 +5,7 @@
             [compojure.core :as comp]
             [de.otto.tesla.xray.ui.detail-page :as dp]
             [de.otto.tesla.xray.ui.env-overview :as eo]
+            [de.otto.tesla.xray.ui.overall-status :as oas]
             [de.otto.tesla.xray.conf.reading-properties :as props]
             [compojure.route :as croute]
             [de.otto.tesla.stateful.handler :as hndl]
@@ -99,8 +100,14 @@
       (comp/GET endpoint []
         {:status  200
          :headers {"Content-Type" "text/html"}
+         :body    (oas/render-overall-status check-results xray-config)})
+
+      (comp/GET (str endpoint"/overview") []
+        {:status  200
+         :headers {"Content-Type" "text/html"}
          :body    (eo/render-env-overview check-results xray-config)})
-      (comp/GET (str endpoint "/:check-name/:environment") [check-name environment]
+
+      (comp/GET (str endpoint "/detail/:check-name/:environment") [check-name environment]
         {:status  200
          :headers {"Content-Type" "text/html"}
          :body    (dp/render-detail-page check-results xray-config check-name environment)}))))

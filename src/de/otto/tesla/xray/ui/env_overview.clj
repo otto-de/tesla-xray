@@ -12,7 +12,7 @@
   (let [url-ecoded-check-name (co/url-encode check-name)
         url-encoded-env (co/url-encode current-env)]
     (if show-links?
-      [:a {:href (str endpoint "/" url-ecoded-check-name "/" url-encoded-env)} the-html]
+      [:a {:href (str endpoint "/detail/" url-ecoded-check-name "/" url-encoded-env)} the-html]
       the-html)))
 
 (defn render-results-for-env [total-cols nr-checks-displayed checkname endpoint show-links? [env {:keys [results overall-status]}]]
@@ -37,7 +37,7 @@
      [:div {:class "check-header"} checkname]
      (map (partial render-results-for-env (count results-for-env) nr-checks-displayed checkname endpoint show-links) sorted-results)]))
 
-(defn render-env-overview [check-results xray-config]
+(defn render-env-overview [check-results {:keys [endpoint] :as xray-config}]
   (hc/html5
     [:head
      [:meta {:charset "utf-8"}]
@@ -45,6 +45,6 @@
      (hc/include-css "/stylesheets/base.css")]
     [:body
      [:header
-      [:h1 "XRayCheck Results"]]
+      [:h1 [:a {:class "index-link" :href endpoint}"<-"] "XRayCheck Results"]]
      [:div {:class "check-result-container"}
       (map (partial check-results-as-html xray-config) @check-results)]]))

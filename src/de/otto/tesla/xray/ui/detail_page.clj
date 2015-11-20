@@ -17,6 +17,6 @@
      (hc/include-css "/stylesheets/base.css")]
     [:body
      [:header
-       [:h1 [:a {:class "index-link" :href endpoint}"<-"] check-name]]
+       [:h1 [:a {:class "index-link" :href (str endpoint"/overview")}"<-"] check-name]]
      [:div {:class ""}
       (render-check-results check-results xray-config check-name current-env)]]))

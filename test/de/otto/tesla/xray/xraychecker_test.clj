@@ -110,20 +110,34 @@
 
 (deftest request-handling-and-html-responses
   (with-redefs [chkr/current-time (fn [] 1447152024778)]
-    (testing "should register, check, store and visualize results"
-      (let [started (comp/start (test-system {:test-check-frequency    "100"
-                                              :test-check-environments "dev"}))
-            xray-checker (:xray-checker started)
-            handlers (handler/handler (:handler started))]
-        (try
-          (chkr/register-check xray-checker (->DummyCheck) "DummyCheck")
-          (start-the-xraychecks xray-checker)
+    (let [started (comp/start (test-system {:test-check-frequency    "100"
+                                            :test-check-environments "dev"}))
+          xray-checker (:xray-checker started)
+          handlers (handler/handler (:handler started))]
+      (try
+        (chkr/register-check xray-checker (->DummyCheck) "DummyCheck")
+        (start-the-xraychecks xray-checker)
+
+        (testing "should visualize the response on overview-page"
+          (let [response (handlers (mock/request :get "/xray-checker/overview"))]
+            (is (= 200 (:status response)))
+            (is (= {"Content-Type" "text/html"} (:headers response)))
+            (is (= true (.contains (:body response) "2015-11-10T10:40:24.778Z tt:0 dummy-message")))))
+
+        (testing "should visualize the overall-status on root-page"
           (let [response (handlers (mock/request :get "/xray-checker"))]
             (is (= 200 (:status response)))
             (is (= {"Content-Type" "text/html"} (:headers response)))
-            (is (= true (.contains (:body response) "2015-11-10T10:40:24.778Z tt:0 dummy-message"))))
-          (finally
-            (comp/stop started)))))))
+            (is (= true (.contains (:body response) "ok")))))
+
+        (testing "should visualize the detail-status on detail-page"
+          (let [response (handlers (mock/request :get "/xray-checker/detail/DummyCheck/dev"))]
+            (is (= 200 (:status response)))
+            (is (= {"Content-Type" "text/html"} (:headers response)))
+            (is (= true (.contains (:body response) "dev")))
+            (is (= true (.contains (:body response) "2015-11-10T10:40:24.778Z tt:0 dummy-message")))))
+        (finally
+          (comp/stop started))))))
 
 (deftest execution-in-parallel
   (testing "should execute checks in parallel"

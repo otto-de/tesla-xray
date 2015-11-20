@@ -1,0 +1,23 @@
+div.overall-status-page {
+    width: 100%;
+    height: 100%;
+    font-size: 500px;
+    text-decoration: none;
+    color: black;
+    text-align: center;
+}
+
+a {
+    text-decoration: none;
+}
+.overall-status-page.error {
+    background-color: rgba(255, 0, 0, 1);
+}
+
+.overall-status-page.ok {
+    background-color: rgba(0, 255, 127, 1);
+}
+
+.overall-status-page.warning {
+    background-color: rgba(255, 249, 34, 1);
+}
