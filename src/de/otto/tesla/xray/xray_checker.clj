@@ -3,6 +3,7 @@
             [overtone.at-at :as at]
             [clojure.tools.logging :as log]
             [compojure.core :as comp]
+            [de.otto.tesla.xray.ui.detail-page :as dp]
             [de.otto.tesla.xray.ui.env-overview :as eo]
             [de.otto.tesla.xray.conf.reading-properties :as props]
             [compojure.route :as croute]
@@ -98,7 +99,11 @@
       (comp/GET endpoint []
         {:status  200
          :headers {"Content-Type" "text/html"}
-         :body    (eo/render-env-overview check-results xray-config)}))))
+         :body    (eo/render-env-overview check-results xray-config)})
+      (comp/GET (str endpoint "/:check-name/:environment") [check-name environment]
+        {:status  200
+         :headers {"Content-Type" "text/html"}
+         :body    (dp/render-detail-page check-results xray-config check-name environment)}))))
 
 (defn default-strategy [results]
   (:status (first results)))

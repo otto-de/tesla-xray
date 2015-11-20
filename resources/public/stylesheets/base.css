@@ -5,27 +5,45 @@ body {
 }
 
 .error {
-    background-color: red;
-    font-size: 15px;
-    color: black;
-}
-
-.ok {
-    background-color: springgreen;
-    font-size: 15px;
-    color: black;
+    font-size: 20px;
+    color: darkgray;
+    background-color: rgba(255, 0, 0, 0.35);
 }
 
 .warning {
     background-color: #fff922;
-    font-size: 15px;
-    color: black;
+    font-size: 20px;
+    color: darkgray;
+    background-color: rgba(255, 249, 34, 0.35);
+}
+
+.ok {
+    font-size: 20px;
+    color: darkgray;
+    background-color: rgba(0, 255, 127, 0.35);
+}
+
+.env-header.error {
+    background-color: rgba(255, 0, 0, 1);
+}
+
+.env-header.ok {
+    background-color: rgba(0, 255, 127, 1);
+}
+
+.env-header.warning {
+    background-color: rgba(255, 249, 34, 1);
 }
 
 .none {
     background-color: #2c3e50;
-    font-size: 15px;
-    color: #2980b9;
+    font-size: 20px;
+    color: #2c3e50;
+}
+
+.index-link {
+    color : white;
+    text-decoration: none;
 }
 
 div.check-result-container {
@@ -37,9 +55,14 @@ div.check-results {
     margin-top: 10px;
     width: 100%;
 }
+div.single-check-results {
+    float: left;
+    margin-top: 10px;
+    width: 95%;
+}
 div.check-header {
     color: white;
-    font-size: 25px;
+    font-size: 30px;
 }
 
 div.overall-none {
@@ -55,15 +78,12 @@ div.overall-error {
     border: solid red 1px;
 }
 
-
 div.env-results-container {
     float:left;
 }
-div.env-single-results {
-    opacity: 0.2;
-}
+
 div.env-header {
-    font-size: 20px;
+    font-size: 25px;
     color: black;
     text-align: center;
 }

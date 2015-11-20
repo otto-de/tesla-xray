@@ -16,7 +16,9 @@
     3 (chk/->XRayCheckResult :none "no status")))
 
 (defn n-random-results [n]
-  (into [] (map random-result (range n))))
+  (let [results (into [] (map random-result (range n)))]
+    {:overall-status (chkr/default-strategy results)
+     :results results}))
 
 (def some-data
   {"CheckA" {"dev"  (n-random-results 50)
@@ -38,7 +40,8 @@
       (serving-with-jetty/add-server :rt-checker)))
 
 (defn -main [& args]
-  (let [{:keys [rt-checker] :as started} (tesla/start (test-system {:test-check-environments "dev;test;prod"}))]
+  (let [{:keys [rt-checker] :as started} (tesla/start (test-system {:test-nr-checks-displayed "1"
+                                                                    :test-check-environments "dev;test;prod"}))]
     (reset! (:check-results rt-checker) some-data)
     (log/info "test-system started")
     (restart/watch (var -main) started)))

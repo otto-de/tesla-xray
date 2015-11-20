@@ -6,23 +6,34 @@
 (defn- single-check-result-as-html [{:keys [status message time-taken stop-time]}]
   (let [stop-time-str (if stop-time (time/from-long stop-time))
         text (str stop-time-str " tt:" time-taken " " message)]
-    [:div {:class (str "env-single-results " (name status))} text]))
+    [:div {:class (name status)} text]))
 
-(defn- render-results-for-env [total-cols nr-checks-displayed [env {:keys [results overall-status]}]]
+(defn wrapped-with-links-to-detail-page [the-html show-links? endpoint check-name current-env]
+  (if show-links?
+    [:a {:href (str endpoint"/"check-name"/"current-env)} the-html]
+    the-html))
+
+(defn render-results-for-env [total-cols nr-checks-displayed checkname endpoint show-links? [env {:keys [results overall-status]}]]
   (let [width (int (/ 97 total-cols))
-        padding (int (/ 3 total-cols))]
-    [:div {:class "env-results-container" :style (str "width: " width "%; padding-left: " padding "%;")}
-     [:div {:class (str "overall-" (name overall-status))}
-      [:div {:class (str "env-header " (name overall-status))} env]
-      (map single-check-result-as-html (take nr-checks-displayed results))]]))
+        padding (int (/ 3 total-cols))
+        should-show-links? (and
+                             (not (= overall-status :none))
+                             show-links?)]
+    (-> [:div {:class "env-results-container" :style (str "width: " width "%; padding-left: " padding "%;")}
+         [:div {:class (str "overall-" (name overall-status))}
+          [:div {:class (str "env-header " (name overall-status))} env]
+          (map single-check-result-as-html (take nr-checks-displayed results))]]
+        (wrapped-with-links-to-detail-page should-show-links? endpoint checkname env))))
 
 (defn- sort-results-by-env [results-for-env environments]
   (sort-by (fn [[env _]] (.indexOf environments env)) results-for-env))
 
-(defn- check-results-as-html [{:keys [environments nr-checks-displayed]} [checkname results-for-env]]
-  [:div {:class "check-results"}
-   [:div {:class "check-header"} checkname]
-   (map (partial render-results-for-env (count results-for-env) nr-checks-displayed) (sort-results-by-env results-for-env environments))])
+(defn- check-results-as-html [{:keys [environments nr-checks-displayed endpoint]} [checkname results-for-env]]
+  (let [show-links true
+        sorted-results (sort-results-by-env results-for-env environments)]
+    [:div {:class "check-results"}
+     [:div {:class "check-header"} checkname]
+     (map (partial render-results-for-env (count results-for-env) nr-checks-displayed checkname endpoint show-links) sorted-results)]))
 
 (defn render-env-overview [check-results xray-config]
   (hc/html5
