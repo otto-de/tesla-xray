@@ -8,6 +8,7 @@
             [de.otto.tesla.xray.ui.overall-status :as oas]
             [de.otto.tesla.xray.conf.reading-properties :as props]
             [compojure.route :as croute]
+            [de.otto.tesla.xray.util.utils :as utils]
             [de.otto.tesla.stateful.handler :as hndl]
             [de.otto.tesla.xray.check :as chk]
             [de.otto.tesla.xray.alerting.webhook :as webh]))
@@ -21,9 +22,6 @@
   (start-check [_ env]
     (chk/start-check check env)))
 
-(defn- current-time []
-  (System/currentTimeMillis))
-
 (defn send-alerts! [results {:keys [incoming-webhook]} check-name current-env]
   (let [last-result-message (:message (first results))
         alert-message (str check-name " failed on " current-env " with message: " last-result-message)]
@@ -32,7 +30,7 @@
 
 (defn should-send-another-alert? [schedule-time last-alert]
   (or (nil? last-alert)
-      (> (- (current-time) last-alert)
+      (> (- (utils/current-time) last-alert)
          schedule-time)))
 
 (defn do-alerting! [check-results {:keys [schedule-time] :as alerting} check-name current-env]
@@ -41,7 +39,7 @@
             (= :error overall-status)
             (should-send-another-alert? schedule-time last-alert))
       (send-alerts! results alerting check-name current-env)
-      (swap! check-results assoc-in [check-name current-env :last-alert] (current-time)))))
+      (swap! check-results assoc-in [check-name current-env :last-alert] (utils/current-time)))))
 
 (defn update-overall-status [{:keys [results] :as result-map} strategy]
   (let [new-status (strategy results)]
@@ -62,9 +60,9 @@
     (do-alerting! check-results (:alerting xray-config) check-name current-env)))
 
 (defn- check-result-with-timings [xray-check current-env]
-  (let [start-time (current-time)
+  (let [start-time (utils/current-time)
         check-result (chk/start-check xray-check current-env)
-        stop-time (current-time)]
+        stop-time (utils/current-time)]
     (chk/with-timings check-result (- stop-time start-time) stop-time)))
 
 (defn- start-single-xraycheck [self [^RegisteredXRayCheck xray-check current-env]]
@@ -86,21 +84,22 @@
        (mapcat (fn [[_ ^RegisteredXRayCheck check]] (with-evironments environments check)))
        (into [])))
 
-(defn- start-the-xraychecks [{:keys [checks xray-config] :as self}]
+(defn- start-the-xraychecks [{:keys [last-check checks xray-config] :as self}]
   (let [pstart-single-xraycheck (partial start-single-xraycheck self)
         checks+env (build-check-name-env-vecs (:environments xray-config) checks)
         futures (map #(wrap-with (partial pstart-single-xraycheck %)) checks+env)]
     (log/info "Starting checks")
-    (apply pcalls futures)))
+    (apply pcalls futures)
+    (reset! last-check (utils/current-time))))
 
-(defn- xray-routes [{:keys [check-results xray-config]}]
+(defn- xray-routes [{:keys [check-results last-check xray-config]}]
   (let [{:keys [endpoint]} xray-config]
     (comp/routes
       (croute/resources "/")
       (comp/GET endpoint []
         {:status  200
          :headers {"Content-Type" "text/html"}
-         :body    (oas/render-overall-status check-results xray-config)})
+         :body    (oas/render-overall-status check-results last-check xray-config)})
 
       (comp/GET (str endpoint"/overview") []
         {:status  200
@@ -129,6 +128,7 @@
                                    :alerting            {:schedule-time    (props/parse-alerting-schedule-time config which-checker)
                                                          :incoming-webhook (props/parse-incoming-webhook-url config which-checker)}}
                      :executor executor
+                     :last-check (atom nil)
                      :checks (atom {})
                      :check-results (atom {}))
           frequency (get-in new-self [:xray-config :refresh-frequency])]

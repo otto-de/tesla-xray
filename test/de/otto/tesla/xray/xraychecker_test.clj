@@ -6,9 +6,9 @@
     [com.stuartsierra.component :as comp]
     [de.otto.tesla.system :as tesla]
     [com.stuartsierra.component :as c]
+    [de.otto.tesla.xray.util.utils :as utils]
     [de.otto.tesla.stateful.handler :as handler]
-    [ring.mock.request :as mock]
-    [de.otto.tesla.xray.alerting.webhook :as webh]))
+    [ring.mock.request :as mock]))
 
 (defrecord DummyCheck []
   chk/XRayCheck
@@ -34,7 +34,7 @@
 
 (deftest check-scheduling
   (testing "should execute checks with configured check-frequency"
-    (with-redefs [chkr/current-time (fn [] 10)]
+    (with-redefs [utils/current-time (fn [] 10)]
       (let [started (comp/start (test-system {:test-check-frequency    "100"
                                               :test-check-environments "dev"
                                               :test-max-check-history  "2"}))
@@ -55,7 +55,7 @@
 
 (deftest checks-and-check-results
   (testing "should register, check and store results"
-    (with-redefs [chkr/current-time (fn [] 10)]
+    (with-redefs [utils/current-time (fn [] 10)]
       (let [started (comp/start (test-system {:test-check-frequency    nil
                                               :test-check-environments "dev"
                                               :test-max-check-history  "2"}))
@@ -93,7 +93,7 @@
 
 (deftest error-handling
   (testing "should not stop even if exceptions occur"
-    (with-redefs [chkr/current-time (fn [] 10)]
+    (with-redefs [utils/current-time (fn [] 10)]
       (let [started (comp/start (test-system {:test-check-frequency    nil
                                               :test-check-environments "dev"}))
             xray-checker (:xray-checker started)]
@@ -109,7 +109,7 @@
             (comp/stop started)))))))
 
 (deftest request-handling-and-html-responses
-  (with-redefs [chkr/current-time (fn [] 1447152024778)]
+  (with-redefs [utils/current-time (fn [] 1447152024778)]
     (let [started (comp/start (test-system {:test-check-frequency    "100"
                                             :test-check-environments "dev"}))
           xray-checker (:xray-checker started)
@@ -141,7 +141,7 @@
 
 (deftest execution-in-parallel
   (testing "should execute checks in parallel"
-    (with-redefs [chkr/current-time (fn [] 10)]
+    (with-redefs [utils/current-time (fn [] 10)]
       (let [started (comp/start (test-system {:test-check-frequency    nil
                                               :test-check-environments "dev"}))
             xray-checker (:xray-checker started)]

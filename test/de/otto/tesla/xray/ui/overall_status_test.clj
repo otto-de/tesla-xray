@@ -1,52 +1,56 @@
 (ns de.otto.tesla.xray.ui.overall-status-test
   (:require
     [clojure.test :refer :all]
+    [de.otto.tesla.xray.util.utils :as utils]
     [de.otto.tesla.xray.ui.overall-status :as os]))
 
 (def calc-overall-status #'os/calc-overall-status)
 (deftest determining-the-overall-status
   (testing "should determine :ok"
-    (let [check-results (atom {"CheckA" {"dev"  {:overall-status :ok}
-                                         "test" {:overall-status :ok}
-                                         "prod" {:overall-status :ok}}
-                               "CheckB" {"dev"  {:overall-status :none}
-                                         "test" {:overall-status :ok}
-                                         "prod" {:overall-status :ok}}
-                               "CheckC" {"dev"  {:overall-status :ok}
-                                         "test" {:overall-status :ok}
-                                         "prod" {:overall-status :ok}}
-                               "CheckD" {"dev"  {:overall-status :ok}
-                                         "test" {:overall-status :none}
-                                         "prod" {:overall-status :ok}}})]
-      (is (= :ok (calc-overall-status check-results)))))
+    (with-redefs [utils/current-time (constantly 200)]
+      (let [last-check (atom 0)
+            refresh-frequency 500
+            check-results (atom {"CheckA" {"dev"  {:overall-status :ok}
+                                           "test" {:overall-status :ok}
+                                           "prod" {:overall-status :ok}}
+                                 "CheckB" {"dev"  {:overall-status :none}
+                                           "test" {:overall-status :ok}
+                                           "prod" {:overall-status :ok}}})]
+        (is (= :ok (calc-overall-status check-results last-check refresh-frequency))))))
   (testing "should determine :warning"
-    (let [check-results (atom {"CheckA" {"dev"  {:overall-status :ok}
-                                         "test" {:overall-status :ok}
-                                         "prod" {:overall-status :ok}}
-                               "CheckB" {"dev"  {:overall-status :none}
-                                         "test" {:overall-status :ok}
-                                         "prod" {:overall-status :warning}}
-                               "CheckC" {"dev"  {:overall-status :ok}
-                                         "test" {:overall-status :warning}
-                                         "prod" {:overall-status :ok}}
-                               "CheckD" {"dev"  {:overall-status :ok}
-                                         "test" {:overall-status :none}
-                                         "prod" {:overall-status :ok}}})]
-      (is (= :warning (calc-overall-status check-results)))))
+    (with-redefs [utils/current-time (constantly 200)]
+      (let [last-check (atom 0)
+            refresh-frequency 500
+            check-results (atom {"CheckA" {"dev"  {:overall-status :ok}
+                                           "test" {:overall-status :ok}
+                                           "prod" {:overall-status :ok}}
+                                 "CheckB" {"dev"  {:overall-status :none}
+                                           "test" {:overall-status :ok}
+                                           "prod" {:overall-status :warning}}})]
+        (is (= :warning (calc-overall-status check-results last-check refresh-frequency))))))
   (testing "should determine :ok"
-    (let [check-results (atom {"CheckA" {"dev"  {:overall-status :ok}
-                                         "test" {:overall-status :ok}
-                                         "prod" {:overall-status :ok}}
-                               "CheckB" {"dev"  {:overall-status :none}
-                                         "test" {:overall-status :ok}
-                                         "prod" {:overall-status :warning}}
-                               "CheckC" {"dev"  {:overall-status :ok}
-                                         "test" {:overall-status :warning}
-                                         "prod" {:overall-status :ok}}
-                               "CheckD" {"dev"  {:overall-status :error}
-                                         "test" {:overall-status :none}
-                                         "prod" {:overall-status :ok}}})]
-      (is (= :error (calc-overall-status check-results))))))
+    (with-redefs [utils/current-time (constantly 200)]
+      (let [last-check (atom 0)
+            refresh-frequency 500
+            check-results (atom {"CheckA" {"dev"  {:overall-status :ok}
+                                           "test" {:overall-status :ok}
+                                           "prod" {:overall-status :error}}
+                                 "CheckB" {"dev"  {:overall-status :none}
+                                           "test" {:overall-status :ok}
+                                           "prod" {:overall-status :warning}}})]
+        (is (= :error (calc-overall-status check-results last-check refresh-frequency))))))
+
+  (testing "should determine :error if checks were not executed for a longer time"
+    (with-redefs [utils/current-time (constantly 1000)]
+      (let [last-check (atom 0)
+            refresh-frequency 500
+            check-results (atom {"CheckA" {"dev"  {:overall-status :ok}
+                                           "test" {:overall-status :ok}
+                                           "prod" {:overall-status :ok}}
+                                 "CheckB" {"dev"  {:overall-status :ok}
+                                           "test" {:overall-status :ok}
+                                           "prod" {:overall-status :ok}}})]
+        (is (= :error (calc-overall-status check-results last-check refresh-frequency)))))))
 
 
 (def flat-results #'os/flat-results)
