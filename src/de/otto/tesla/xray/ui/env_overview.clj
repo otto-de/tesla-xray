@@ -19,12 +19,12 @@
 (defn- sort-results-by-env [results-for-env environments]
   (sort-by (fn [[env _]] (.indexOf environments env)) results-for-env))
 
-(defn- check-results-as-html [environments nr-checks-displayed [checkname results-for-env]]
+(defn- check-results-as-html [{:keys [environments nr-checks-displayed]} [checkname results-for-env]]
   [:div {:class "check-results"}
    [:div {:class "check-header"} checkname]
    (map (partial render-results-for-env (count results-for-env) nr-checks-displayed) (sort-results-by-env results-for-env environments))])
 
-(defn render-env-overview [{:keys [check-results environments nr-checks-displayed]}]
+(defn render-env-overview [check-results xray-config]
   (hc/html5
     [:head
      [:meta {:charset "utf-8"}]
@@ -34,4 +34,4 @@
      [:header
       [:h1 "XRayCheck Results"]]
      [:div {:class "check-result-container"}
-      (map (partial check-results-as-html environments nr-checks-displayed) @check-results)]]))
+      (map (partial check-results-as-html xray-config) @check-results)]]))

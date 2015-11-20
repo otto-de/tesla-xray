@@ -32,6 +32,27 @@
   (-> (tesla/base-system (assoc runtime-config :name "test-system"))
       (assoc :xray-checker (c/using (chkr/new-xraychecker "test") [:handler :config]))))
 
+(deftest check-scheduling
+  (testing "should execute checks with configured check-frequency"
+    (with-redefs [chkr/current-time (fn [] 10)]
+      (let [started (comp/start (test-system {:test-check-frequency    "100"
+                                              :test-check-environments "dev"
+                                              :test-max-check-history  "2"}))
+            xray-checker (:xray-checker started)]
+        (chkr/register-check xray-checker (->DummyCheck) "DummyCheckA")
+        (chkr/register-check xray-checker (->DummyCheck) "DummyCheckB")
+        (try
+          (is (= {"DummyCheckA" (chkr/->RegisteredXRayCheck (->DummyCheck) "DummyCheckA" chkr/default-strategy)
+                  "DummyCheckB" (chkr/->RegisteredXRayCheck (->DummyCheck) "DummyCheckB" chkr/default-strategy)}
+                 @(:checks xray-checker)))
+          (Thread/sleep 100)
+          (is (= {"DummyCheckA" {"dev" {:overall-status :ok
+                                        :results        [(chk/->XRayCheckResult :ok "dummy-message" 0 10)]}}
+                  "DummyCheckB" {"dev" {:overall-status :ok
+                                        :results        [(chk/->XRayCheckResult :ok "dummy-message" 0 10)]}}}
+                 @(:check-results xray-checker))))))))
+
+
 (deftest checks-and-check-results
   (testing "should register, check and store results"
     (with-redefs [chkr/current-time (fn [] 10)]
