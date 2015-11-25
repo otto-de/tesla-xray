@@ -20,12 +20,6 @@
     (is (= 99 (props/parse-max-check-history {:config {:foo-max-check-history "99"}} "foo"))))
   (testing "should parse the nr of checks to be displayed"
     (is (= 9 (props/parse-nr-checks-displayed {:config {:foo-nr-checks-displayed "9"}} "foo"))))
-  (testing "should parse the incoming-webhook-url"
-    (is (= "https://someurl.com" (props/parse-incoming-webhook-url {:config {:foo-incoming-webhook-url "https://someurl.com"}} "foo"))))
-  (testing "should parse undefined incoming-webhook-url as nil 1"
-    (is (= nil (props/parse-incoming-webhook-url {:config {:foo-incoming-webhook-url ""}} "foo"))))
-  (testing "should parse undefined incoming-webhook-url as nil 2"
-    (is (= nil (props/parse-incoming-webhook-url {:config {}} "foo"))))
   (testing "should fall back to default alerting schedule time"
     (is (= (* 1000 60 5) (props/parse-alerting-schedule-time {:config {}} "foo"))))
   (testing "should parse alerting schedule time"

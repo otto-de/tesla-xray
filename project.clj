@@ -1,12 +1,11 @@
-(defproject de.otto/tesla-xray "0.2.11"
+(defproject de.otto/tesla-xray "0.2.12"
   :description "a component to execute and visualize checks written in clj"
-  :url "https://github.com/otto-de/tesla-x-ray.git"
+  :url "https://github.com/otto-de/tesla-xray.git"
   :license {:name "Apache License 2.0"
             :url  "http://www.apache.org/license/LICENSE-2.0.html"}
   :dependencies [[org.clojure/clojure "1.7.0"]
                  [overtone/at-at "1.2.0"]
                  [hiccup "1.0.5"]
-                 [clj-http "2.0.0"]
                  [ring/ring-codec "1.0.0"]
                  [clj-time "0.11.0"]]
 

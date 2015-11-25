@@ -18,11 +18,6 @@
 (defn parse-nr-checks-displayed [config which-checker]
   (Integer/parseInt (get-in config [:config (keyword (str which-checker "-nr-checks-displayed"))] "5")))
 
-(defn parse-incoming-webhook-url [config which-checker]
-  (let [url (get-in config [:config (keyword (str which-checker "-incoming-webhook-url"))])]
-    (if-not (empty? url)
-      url)))
-
 (defn parse-alerting-schedule-time [config which-checker]
   (let [schedule-time (get-in config [:config (keyword (str which-checker "-alerting-schedule-time"))])]
     (if-not (empty? schedule-time)

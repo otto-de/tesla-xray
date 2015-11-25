@@ -10,10 +10,10 @@
             [compojure.route :as croute]
             [de.otto.tesla.xray.util.utils :as utils]
             [de.otto.tesla.stateful.handler :as hndl]
-            [de.otto.tesla.xray.check :as chk]
-            [de.otto.tesla.xray.alerting.webhook :as webh]))
+            [de.otto.tesla.xray.check :as chk]))
 
 (defprotocol XRayCheckerProtocol
+  (set-alerting-function [self alerting-fn])
   (register-check [self check checkname])
   (register-check-with-strategy [self check checkname strategy]))
 
@@ -22,24 +22,27 @@
   (start-check [_ env]
     (chk/start-check check env)))
 
-(defn send-alerts! [results {:keys [incoming-webhook]} check-name current-env]
-  (let [last-result-message (:message (first results))
-        alert-message (str check-name " failed on " current-env " with message: " last-result-message)]
-    (when incoming-webhook
-      (webh/send-webhook-message! incoming-webhook alert-message))))
+(defn send-alerts! [alerting-function results check-name current-env]
+  (try
+    (alerting-function {:result     (first results)
+                        :check-name check-name
+                        :env        current-env})
+    (catch Exception e
+      (log/error e "Error when calling alerting function"))))
 
 (defn should-send-another-alert? [schedule-time last-alert]
   (or (nil? last-alert)
       (> (- (utils/current-time) last-alert)
          schedule-time)))
 
-(defn do-alerting! [check-results {:keys [schedule-time] :as alerting} check-name current-env]
-  (let [{:keys [results overall-status last-alert]} (get-in @check-results [check-name current-env])]
-    (when (and
-            (= :error overall-status)
-            (should-send-another-alert? schedule-time last-alert))
-      (send-alerts! results alerting check-name current-env)
-      (swap! check-results assoc-in [check-name current-env :last-alert] (utils/current-time)))))
+(defn do-alerting! [alerting-fn check-results {:keys [schedule-time]} check-name current-env]
+  (when-let [alerting-function @alerting-fn]
+    (let [{:keys [results overall-status last-alert]} (get-in @check-results [check-name current-env])]
+      (when (and
+              (= :error overall-status)
+              (should-send-another-alert? schedule-time last-alert))
+        (send-alerts! alerting-function results check-name current-env)
+        (swap! check-results assoc-in [check-name current-env :last-alert] (utils/current-time))))))
 
 (defn update-overall-status [{:keys [results] :as result-map} strategy]
   (let [new-status (strategy results)]
@@ -54,10 +57,10 @@
       (update :results append-result result max-check-history)
       (update-overall-status strategy)))
 
-(defn- update-results! [{:keys [check-results xray-config]} {:keys [check-name strategy]} current-env result]
+(defn- update-results! [{:keys [alerting-fn check-results xray-config]} {:keys [check-name strategy]} current-env result]
   (let [update-fn (partial update+handle-result! result xray-config strategy)]
     (swap! check-results update-in [check-name current-env] update-fn)
-    (do-alerting! check-results (:alerting xray-config) check-name current-env)))
+    (do-alerting! alerting-fn check-results (:alerting xray-config) check-name current-env)))
 
 (defn- check-result-with-timings [xray-check current-env]
   (let [start-time (utils/current-time)
@@ -101,7 +104,7 @@
          :headers {"Content-Type" "text/html"}
          :body    (oas/render-overall-status check-results last-check xray-config)})
 
-      (comp/GET (str endpoint"/overview") []
+      (comp/GET (str endpoint "/overview") []
         {:status  200
          :headers {"Content-Type" "text/html"}
          :body    (eo/render-env-overview check-results xray-config)})
@@ -125,9 +128,9 @@
                                    :max-check-history   (props/parse-max-check-history config which-checker)
                                    :endpoint            (props/parse-endpoint config which-checker)
                                    :environments        (props/parse-check-environments config which-checker)
-                                   :alerting            {:schedule-time    (props/parse-alerting-schedule-time config which-checker)
-                                                         :incoming-webhook (props/parse-incoming-webhook-url config which-checker)}}
+                                   :alerting            {:schedule-time (props/parse-alerting-schedule-time config which-checker)}}
                      :executor executor
+                     :alerting-fn (atom nil)
                      :last-check (atom nil)
                      :checks (atom {})
                      :check-results (atom {}))
@@ -149,6 +152,9 @@
     self)
 
   XRayCheckerProtocol
+  (set-alerting-function [{:keys [alerting-fn]} new-alerting-fn]
+    (reset! alerting-fn new-alerting-fn))
+
   (register-check [self check checkname]
     (register-check-with-strategy self check checkname default-strategy))
 
