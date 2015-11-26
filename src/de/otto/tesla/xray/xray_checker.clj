@@ -62,9 +62,17 @@
     (swap! check-results update-in [check-name current-env] update-fn)
     (do-alerting! alerting-fn check-results (:alerting xray-config) check-name current-env)))
 
+(defn- check-result [xray-check current-env]
+  (try
+    (or
+      (chk/start-check xray-check current-env)
+      (chk/->XRayCheckResult :warning "no xray-result returned by check"))
+    (catch Throwable t
+      (chk/->XRayCheckResult :error (.getMessage t)))))
+
 (defn- check-result-with-timings [xray-check current-env]
   (let [start-time (utils/current-time)
-        check-result (chk/start-check xray-check current-env)
+        check-result (check-result xray-check current-env)
         stop-time (utils/current-time)]
     (chk/with-timings check-result (- stop-time start-time) stop-time)))
 

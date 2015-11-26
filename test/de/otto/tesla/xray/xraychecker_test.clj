@@ -15,6 +15,15 @@
   (start-check [_ _]
     (chk/->XRayCheckResult :ok "dummy-message")))
 
+(defrecord DummyCheckWithoutReturnedStatus []
+  chk/XRayCheck
+  (start-check [_ _]))
+
+(defrecord AssertionCheck []
+  chk/XRayCheck
+  (start-check [_ _]
+    (assert (= 1 2))))
+
 (defrecord WaitingDummyCheck [t]
   chk/XRayCheck
   (start-check [_ _]
@@ -92,6 +101,34 @@
             (comp/stop started)))))))
 
 (deftest error-handling
+  (testing "should store warning-result for check without a propper return message"
+    (with-redefs [utils/current-time (fn [] 10)]
+      (let [started (comp/start (test-system {:test-check-frequency    nil
+                                              :test-check-environments "dev"}))
+            xray-checker (:xray-checker started)]
+        (try
+          (chkr/register-check xray-checker (->DummyCheckWithoutReturnedStatus) "DummyCheckWithoutReturnedStatus")
+          (start-the-xraychecks xray-checker)
+          (Thread/sleep 10)
+          (is (= {"DummyCheckWithoutReturnedStatus" {"dev" {:overall-status :warning
+                                                            :results        [(chk/->XRayCheckResult :warning "no xray-result returned by check" 0 10)]}}}
+                 @(:check-results xray-checker)))
+          (finally
+            (comp/stop started))))))
+  (testing "should be able to catch assertions in test"
+    (with-redefs [utils/current-time (fn [] 10)]
+      (let [started (comp/start (test-system {:test-check-frequency    nil
+                                              :test-check-environments "dev"}))
+            xray-checker (:xray-checker started)]
+        (try
+          (chkr/register-check xray-checker (->AssertionCheck) "AssertionCheck")
+          (start-the-xraychecks xray-checker)
+          (Thread/sleep 10)
+          (is (= {"AssertionCheck" {"dev" {:overall-status :error
+                                           :results        [(chk/->XRayCheckResult :error "Assert failed: (= 1 2)" 0 10)]}}}
+                 @(:check-results xray-checker)))
+          (finally
+            (comp/stop started))))))
   (testing "should store error-result with last-alert timestamp"
     (with-redefs [utils/current-time (fn [] 10)]
       (let [started (comp/start (test-system {:test-check-frequency    nil
@@ -104,7 +141,7 @@
           (Thread/sleep 10)
           (is (= {"FailingCheck" {"dev" {:last-alert     10
                                          :overall-status :error
-                                         :results        [(chk/->XRayCheckResult :error "failing message")]}}}
+                                         :results        [(chk/->XRayCheckResult :error "failing message" 0 10)]}}}
                  @(:check-results xray-checker)))
           (finally
             (comp/stop started))))))
@@ -118,7 +155,7 @@
           (start-the-xraychecks xray-checker)
           (Thread/sleep 10)
           (is (= {"FailingCheck" {"dev" {:overall-status :error
-                                         :results        [(chk/->XRayCheckResult :error "failing message")]}}}
+                                         :results        [(chk/->XRayCheckResult :error "failing message" 0 10)]}}}
                  @(:check-results xray-checker)))
           (finally
             (comp/stop started)))))))

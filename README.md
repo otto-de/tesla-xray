@@ -2,7 +2,7 @@
 tesla-xray is a component for executing and visualizing checks.   
 It can be used with the tesla-microservice.
 
-		[de.otto/tesla-xray "0.2.12"]
+		[de.otto/tesla-xray "0.2.13"]
   
 Checks return Check-Results which currently look like this:
 
