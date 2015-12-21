@@ -15,6 +15,12 @@
   (start-check [_ _]
     (chk/->XRayCheckResult :ok "dummy-message")))
 
+(defrecord BlockingCheck []
+  chk/XRayCheck
+  (start-check [_ _]
+    (while true
+      (Thread/sleep 1000))))
+
 (defrecord DummyCheckWithoutReturnedStatus []
   chk/XRayCheck
   (start-check [_ _]))
@@ -62,10 +68,27 @@
                  @(:check-results xray-checker))))))))
 
 
+(deftest should-handle-blocking-checks
+  (testing "should timeout blocking-checks before they run again"
+    (with-redefs [utils/current-time (fn [] 10)]
+      (let [started (comp/start (test-system {:test-check-frequency    "100"
+                                              :test-check-environments "dev"
+                                              :test-max-check-history  "2"}))
+            xray-checker (:xray-checker started)]
+        (chkr/register-check xray-checker (->BlockingCheck) "BlockingCheck")
+        (try
+          (is (= {"BlockingCheck" (chkr/->RegisteredXRayCheck (->BlockingCheck) "BlockingCheck" chkr/default-strategy)}
+                 @(:checks xray-checker)))
+          (Thread/sleep 310)
+          (is (= {"BlockingCheck" {"dev" {:overall-status :error
+                                          :results        [(chk/->XRayCheckResult :error "BlockingCheck did not finish in 100 ms" 100 10)
+                                                           (chk/->XRayCheckResult :error "BlockingCheck did not finish in 100 ms" 100 10)]}}}
+                 @(:check-results xray-checker))))))))
+
 (deftest checks-and-check-results
   (testing "should register, check and store results"
     (with-redefs [utils/current-time (fn [] 10)]
-      (let [started (comp/start (test-system {:test-check-frequency    nil
+      (let [started (comp/start (test-system {:test-check-frequency    "100"
                                               :test-check-environments "dev"
                                               :test-max-check-history  "2"}))
             xray-checker (:xray-checker started)]
@@ -103,7 +126,7 @@
 (deftest error-handling
   (testing "should store warning-result for check without a propper return message"
     (with-redefs [utils/current-time (fn [] 10)]
-      (let [started (comp/start (test-system {:test-check-frequency    nil
+      (let [started (comp/start (test-system {:test-check-frequency    "100"
                                               :test-check-environments "dev"}))
             xray-checker (:xray-checker started)]
         (try
@@ -117,7 +140,7 @@
             (comp/stop started))))))
   (testing "should be able to catch assertions in test"
     (with-redefs [utils/current-time (fn [] 10)]
-      (let [started (comp/start (test-system {:test-check-frequency    nil
+      (let [started (comp/start (test-system {:test-check-frequency    "100"
                                               :test-check-environments "dev"}))
             xray-checker (:xray-checker started)]
         (try
@@ -131,7 +154,7 @@
             (comp/stop started))))))
   (testing "should store error-result with last-alert timestamp"
     (with-redefs [utils/current-time (fn [] 10)]
-      (let [started (comp/start (test-system {:test-check-frequency    nil
+      (let [started (comp/start (test-system {:test-check-frequency    "100"
                                               :test-check-environments "dev"}))
             xray-checker (:xray-checker started)]
         (try
@@ -147,7 +170,7 @@
             (comp/stop started))))))
   (testing "should store error-result without last-alert timestamp"
     (with-redefs [utils/current-time (fn [] 10)]
-      (let [started (comp/start (test-system {:test-check-frequency    nil
+      (let [started (comp/start (test-system {:test-check-frequency    "100"
                                               :test-check-environments "dev"}))
             xray-checker (:xray-checker started)]
         (try
@@ -194,19 +217,14 @@
 (deftest execution-in-parallel
   (testing "should execute checks in parallel"
     (with-redefs [utils/current-time (fn [] 10)]
-      (let [started (comp/start (test-system {:test-check-frequency    nil
+      (let [started (comp/start (test-system {:test-check-frequency    "9999999"
                                               :test-check-environments "dev"}))
             xray-checker (:xray-checker started)]
         (try
           (chkr/register-check xray-checker (->WaitingDummyCheck 0) "DummyCheck1")
           (chkr/register-check xray-checker (->WaitingDummyCheck 100) "DummyCheck2")
           (chkr/register-check xray-checker (->WaitingDummyCheck 100) "DummyCheck3")
-          (chkr/register-check xray-checker (->WaitingDummyCheck 200) "DummyCheck4")
-          (chkr/register-check xray-checker (->WaitingDummyCheck 200) "DummyCheck5")
           (start-the-xraychecks xray-checker)               ; wait for start
-          (is (= {"DummyCheck1" {"dev" {:overall-status :ok
-                                        :results        [(chk/->XRayCheckResult :ok 0 0 10)]}}}
-                 @(:check-results xray-checker)))
           (Thread/sleep 100)
           (is (= {"DummyCheck1" {"dev" {:overall-status :ok
                                         :results        [(chk/->XRayCheckResult :ok 0 0 10)]}}
@@ -214,18 +232,6 @@
                                         :results        [(chk/->XRayCheckResult :ok 100 0 10)]}}
                   "DummyCheck3" {"dev" {:overall-status :ok
                                         :results        [(chk/->XRayCheckResult :ok 100 0 10)]}}}
-                 @(:check-results xray-checker)))
-          (Thread/sleep 100)
-          (is (= {"DummyCheck1" {"dev" {:overall-status :ok
-                                        :results        [(chk/->XRayCheckResult :ok 0 0 10)]}}
-                  "DummyCheck2" {"dev" {:overall-status :ok
-                                        :results        [(chk/->XRayCheckResult :ok 100 0 10)]}}
-                  "DummyCheck3" {"dev" {:overall-status :ok
-                                        :results        [(chk/->XRayCheckResult :ok 100 0 10)]}}
-                  "DummyCheck4" {"dev" {:overall-status :ok
-                                        :results        [(chk/->XRayCheckResult :ok 200 0 10)]}}
-                  "DummyCheck5" {"dev" {:overall-status :ok
-                                        :results        [(chk/->XRayCheckResult :ok 200 0 10)]}}}
                  @(:check-results xray-checker)))
           (finally
             (comp/stop started)))))))

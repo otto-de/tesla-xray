@@ -76,16 +76,12 @@
         stop-time (utils/current-time)]
     (chk/with-timings check-result (- stop-time start-time) stop-time)))
 
-(defn- start-single-xraycheck [self [^RegisteredXRayCheck xray-check current-env]]
+(defn- start-single-xraycheck [[^RegisteredXRayCheck xray-check current-env]]
   (try
-    (let [result (check-result-with-timings xray-check current-env)]
-      (update-results! self xray-check current-env result))
+    (check-result-with-timings xray-check current-env)
     (catch Exception e
       (log/error e "an error occured when executing check " (:check-name xray-check) (.getMessage e))
-      (update-results! self xray-check current-env (chk/->XRayCheckResult :error (.getMessage e))))))
-
-(defn- wrap-with [a-fn]
-  (partial deref (future (a-fn))))
+      (chk/->XRayCheckResult :error (.getMessage e)))))
 
 (defn- with-evironments [environments check]
   (map (fn [env] [check env]) environments))
@@ -95,12 +91,25 @@
        (mapcat (fn [[_ ^RegisteredXRayCheck check]] (with-evironments environments check)))
        (into [])))
 
+(defn- timeout-response [check-name timeout]
+  (chk/->XRayCheckResult :error (str check-name " did not finish in " timeout " ms") timeout (utils/current-time)))
+
+(defn- entry-with-started-future [timeout ce]
+  (let [check-name (:check-name (first ce))
+        fallback (timeout-response check-name timeout)
+        started-check-future (future (utils/execute-with-timeout timeout fallback (start-single-xraycheck ce)))]
+    [ce started-check-future]))
+
+(defn- build-future-map [xray-config checks+env]
+  (let [timeout (:refresh-frequency xray-config)
+        map-entries (map (partial entry-with-started-future timeout) checks+env)]
+    (into {} map-entries)))
+
 (defn- start-the-xraychecks [{:keys [last-check checks xray-config] :as self}]
-  (let [pstart-single-xraycheck (partial start-single-xraycheck self)
-        checks+env (build-check-name-env-vecs (:environments xray-config) checks)
-        futures (map #(wrap-with (partial pstart-single-xraycheck %)) checks+env)]
-    (log/info "Starting checks")
-    (apply pcalls futures)
+  (let [checks+env (build-check-name-env-vecs (:environments xray-config) checks)
+        checks+env-to-futures (build-future-map xray-config checks+env)]
+    (doseq [[[^RegisteredXRayCheck xray-check current-env] f] checks+env-to-futures]
+      (update-results! self xray-check current-env (deref f)))
     (reset! last-check (utils/current-time))))
 
 (defn- xray-routes [{:keys [check-results last-check xray-config]}]

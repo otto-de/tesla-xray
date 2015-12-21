@@ -35,7 +35,7 @@
 (deftest checks-and-check-results
   (let [should-fail? (atom false)
         webhook-alerts-send (atom [])]
-    (let [started (comp/start (test-system {:test-check-frequency        ""
+    (let [started (comp/start (test-system {:test-check-frequency        "999999"
                                             :test-check-environments     "dev"
                                             :test-alerting-schedule-time "100"
                                             :test-incoming-webhook-url   "https://a-valid-url.to.start.alerting"
@@ -92,7 +92,7 @@
 (deftest check-nr-of-alerts
   (let [should-fail? (atom false)
         webhook-alerts-send (atom [])]
-    (let [started (comp/start (test-system {:test-check-frequency        ""
+    (let [started (comp/start (test-system {:test-check-frequency        "999999"
                                             :test-check-environments     "dev;test;bar;baz"
                                             :test-alerting-schedule-time "100"
                                             :test-incoming-webhook-url   "https://a-valid-url.to.start.alerting"
