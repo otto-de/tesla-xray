@@ -2,7 +2,7 @@
 tesla-xray is a component for executing and visualizing checks.   
 It can be used with the tesla-microservice.
 
-		[de.otto/tesla-xray "0.2.18"]
+		[de.otto/tesla-xray "0.2.19"]
   
 Checks return Check-Results which currently look like this:
 
@@ -41,9 +41,10 @@ Add a xray-checker to your system:
 		(defn- default-strategy [results]
 		  (:status (first results)))
 		  
-		(defn- alerting-fn [{:keys [result check-name env]}]
-		  (let [{:keys [status message time-taken stop-time]} result]
-			(log/error "ALERT: " check-name " failed on " env " at " stop-time " after " time-taken "ms with status " status ". message was: " message)))
+		(defn- alerting-fn [{:keys [last-result overall-status check-name env]}]
+		  (let [{:keys [status message time-taken stop-time]} last-result]
+		  	
+			(log/info "ALERT: " check-name " has status " overall-status " on "  env " at " stop-time " after " time-taken "ms. message was: " message)))
 		
 		(defrecord YourCheck [xraychecker]
 		  component/Lifecycle
@@ -70,7 +71,6 @@ These are the currently supported properties:
 			yourchecker-check-endpoint=/xray-checker ;where the ui shows up
 			yourchecker-max-check-history=100 ;nr of checks to keep (in memory)
 			yourchecker-nr-checks-displayed=5 ;nr checks to be diplayed for a check/env on /xray-checker/overview
-			yourchecker-alerting-schedule-time=300000 ;if a check stays red, how often do you want to send alerts
 			
 ## UI
 ### Endpoint: /

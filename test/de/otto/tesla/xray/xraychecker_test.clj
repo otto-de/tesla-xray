@@ -151,36 +151,6 @@
                                            :results        [(chk/->XRayCheckResult :error "Assert failed: (= 1 2)" 0 10)]}}}
                  @(:check-results xray-checker)))
           (finally
-            (comp/stop started))))))
-  (testing "should store error-result with last-alert timestamp"
-    (with-redefs [utils/current-time (fn [] 10)]
-      (let [started (comp/start (test-system {:test-check-frequency    "100"
-                                              :test-check-environments "dev"}))
-            xray-checker (:xray-checker started)]
-        (try
-          (chkr/register-check xray-checker (->FailingCheck) "FailingCheck")
-          (chkr/set-alerting-function xray-checker #())
-          (start-the-xraychecks xray-checker)
-          (Thread/sleep 10)
-          (is (= {"FailingCheck" {"dev" {:last-alert     10
-                                         :overall-status :error
-                                         :results        [(chk/->XRayCheckResult :error "failing message" 0 10)]}}}
-                 @(:check-results xray-checker)))
-          (finally
-            (comp/stop started))))))
-  (testing "should store error-result without last-alert timestamp"
-    (with-redefs [utils/current-time (fn [] 10)]
-      (let [started (comp/start (test-system {:test-check-frequency    "100"
-                                              :test-check-environments "dev"}))
-            xray-checker (:xray-checker started)]
-        (try
-          (chkr/register-check xray-checker (->FailingCheck) "FailingCheck")
-          (start-the-xraychecks xray-checker)
-          (Thread/sleep 10)
-          (is (= {"FailingCheck" {"dev" {:overall-status :error
-                                         :results        [(chk/->XRayCheckResult :error "failing message" 0 10)]}}}
-                 @(:check-results xray-checker)))
-          (finally
             (comp/stop started)))))))
 
 (deftest request-handling-and-html-responses

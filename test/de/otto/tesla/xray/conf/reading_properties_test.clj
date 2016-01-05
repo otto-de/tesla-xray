@@ -19,10 +19,4 @@
   (testing "should parse the max check history"
     (is (= 99 (props/parse-max-check-history {:config {:foo-max-check-history "99"}} "foo"))))
   (testing "should parse the nr of checks to be displayed"
-    (is (= 9 (props/parse-nr-checks-displayed {:config {:foo-nr-checks-displayed "9"}} "foo"))))
-  (testing "should fall back to default alerting schedule time"
-    (is (= (* 1000 60 5) (props/parse-alerting-schedule-time {:config {}} "foo"))))
-  (testing "should parse alerting schedule time"
-    (is (= 5000 (props/parse-alerting-schedule-time {:config {:foo-alerting-schedule-time "5000"}} "foo"))))
-  (testing "should fall back to default alerting schedule time for empty config"
-    (is (= (* 1000 60 5) (props/parse-alerting-schedule-time {:config {:foo-alerting-schedule-time ""}} "foo")))))
+    (is (= 9 (props/parse-nr-checks-displayed {:config {:foo-nr-checks-displayed "9"}} "foo")))))

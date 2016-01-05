@@ -22,45 +22,44 @@
   (start-check [_ env]
     (chk/start-check check env)))
 
-(defn send-alerts! [alerting-function results check-name current-env]
+(defn send-alerts! [alerting-function check-name current-env results overall-status]
   (try
-    (alerting-function {:result     (first results)
-                        :check-name check-name
-                        :env        current-env})
+    (alerting-function {:last-result    (first results)
+                        :overall-status overall-status
+                        :check-name     check-name
+                        :env            current-env})
     (catch Exception e
       (log/error e "Error when calling alerting function"))))
 
-(defn should-send-another-alert? [schedule-time last-alert]
-  (or (nil? last-alert)
-      (> (- (utils/current-time) last-alert)
-         schedule-time)))
-
-(defn do-alerting! [alerting-fn check-results {:keys [schedule-time]} check-name current-env]
+(defn do-alerting! [alerting-fn check-results check-name current-env overall-status]
   (when-let [alerting-function @alerting-fn]
-    (let [{:keys [results overall-status last-alert]} (get-in @check-results [check-name current-env])]
-      (when (and
-              (= :error overall-status)
-              (should-send-another-alert? schedule-time last-alert))
-        (send-alerts! alerting-function results check-name current-env)
-        (swap! check-results assoc-in [check-name current-env :last-alert] (utils/current-time))))))
-
-(defn update-overall-status [{:keys [results] :as result-map} strategy]
-  (let [new-status (strategy results)]
-    (assoc result-map :overall-status new-status)))
+    (let [results (get-in @check-results [check-name current-env :results])]
+      (send-alerts! alerting-function check-name current-env results overall-status))))
 
 (defn- append-result [old-results result max-check-history]
   (let [limited-results (take (- max-check-history 1) old-results)]
     (conj limited-results result)))
 
-(defn- update+handle-result! [result {:keys [max-check-history]} strategy old-results]
-  (-> (or old-results {})
-      (update :results append-result result max-check-history)
-      (update-overall-status strategy)))
+(defn existing-status-has-changed? [overall-status new-overall-status]
+  (if overall-status
+    (not= overall-status new-overall-status)))
+
+(defn initial-status-is-failure? [overall-status new-overall-status]
+  (and
+    (nil? overall-status)
+    (not (= :ok new-overall-status))))
 
 (defn- update-results! [{:keys [alerting-fn check-results xray-config]} {:keys [check-name strategy]} current-env result]
-  (let [update-fn (partial update+handle-result! result xray-config strategy)]
-    (swap! check-results update-in [check-name current-env] update-fn)
-    (do-alerting! alerting-fn check-results (:alerting xray-config) check-name current-env)))
+  (let [{:keys [max-check-history]} xray-config
+        {:keys [results overall-status]} (get-in @check-results [check-name current-env])
+        new-results (append-result results result max-check-history)
+        new-overall-status (strategy new-results)]
+    (swap! check-results assoc-in [check-name current-env :results] new-results)
+    (swap! check-results assoc-in [check-name current-env :overall-status] new-overall-status)
+    (when (or
+            (existing-status-has-changed? overall-status new-overall-status)
+            (initial-status-is-failure? overall-status new-overall-status))
+      (do-alerting! alerting-fn check-results check-name current-env new-overall-status))))
 
 (defn- check-result [xray-check current-env]
   (try
@@ -144,8 +143,7 @@
                                    :nr-checks-displayed (props/parse-nr-checks-displayed config which-checker)
                                    :max-check-history   (props/parse-max-check-history config which-checker)
                                    :endpoint            (props/parse-endpoint config which-checker)
-                                   :environments        (props/parse-check-environments config which-checker)
-                                   :alerting            {:schedule-time (props/parse-alerting-schedule-time config which-checker)}}
+                                   :environments        (props/parse-check-environments config which-checker)}
                      :executor executor
                      :alerting-fn (atom nil)
                      :last-check (atom nil)
