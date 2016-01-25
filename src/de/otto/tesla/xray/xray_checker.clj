@@ -67,20 +67,14 @@
       (chk/start-check xray-check current-env)
       (chk/->XRayCheckResult :warning "no xray-result returned by check"))
     (catch Throwable t
+      (log/error t "Exception thrown in check " (:check-name xray-check ))
       (chk/->XRayCheckResult :error (.getMessage t)))))
 
-(defn- check-result-with-timings [xray-check current-env]
+(defn- check-result-with-timings [[^RegisteredXRayCheck xray-check current-env]]
   (let [start-time (utils/current-time)
         check-result (check-result xray-check current-env)
         stop-time (utils/current-time)]
     (chk/with-timings check-result (- stop-time start-time) stop-time)))
-
-(defn- start-single-xraycheck [[^RegisteredXRayCheck xray-check current-env]]
-  (try
-    (check-result-with-timings xray-check current-env)
-    (catch Exception e
-      (log/error e "an error occured when executing check " (:check-name xray-check) (.getMessage e))
-      (chk/->XRayCheckResult :error (.getMessage e)))))
 
 (defn- with-evironments [environments check]
   (map (fn [env] [check env]) environments))
@@ -93,11 +87,11 @@
 (defn- timeout-response [check-name timeout]
   (chk/->XRayCheckResult :error (str check-name " did not finish in " timeout " ms") timeout (utils/current-time)))
 
-(defn- entry-with-started-future [timeout ce]
-  (let [check-name (:check-name (first ce))
+(defn- entry-with-started-future [timeout check+env]
+  (let [check-name (:check-name (first check+env))
         fallback (timeout-response check-name timeout)
-        started-check-future (future (utils/execute-with-timeout timeout fallback (start-single-xraycheck ce)))]
-    [ce started-check-future]))
+        started-check-future (future (utils/execute-with-timeout timeout fallback (check-result-with-timings check+env)))]
+    [check+env started-check-future]))
 
 (defn- build-future-map [xray-config checks+env]
   (let [timeout (:refresh-frequency xray-config)
