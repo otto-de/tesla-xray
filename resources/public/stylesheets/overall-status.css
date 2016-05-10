@@ -13,6 +13,9 @@ a {
 .overall-status-page.error {
     background-color: rgba(255, 0, 0, 1);
 }
+.overall-status-page.defunct {
+    background-color: rgb(241, 70, 255);
+}
 
 .overall-status-page.ok {
     background-color: rgba(0, 255, 127, 1);

@@ -14,7 +14,7 @@
 (defn- calc-overall-status [check-results last-check refresh-frequency]
   (let [all-status (map :overall-status (flat-results check-results))]
     (if (no-check-started-for-too-long-time last-check refresh-frequency)
-      :error
+      :defunct
       (if (some #(= :error %) all-status)
         :error
         (if (some #(= :warning %) all-status)

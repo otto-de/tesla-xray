@@ -40,7 +40,7 @@
                                            "prod" {:overall-status :warning}}})]
         (is (= :error (calc-overall-status check-results last-check refresh-frequency))))))
 
-  (testing "should determine :error if checks were not executed for a longer time"
+  (testing "should determine :defunct if checks were not executed for a longer time"
     (with-redefs [utils/current-time (constantly 1000)]
       (let [last-check (atom 0)
             refresh-frequency 500
@@ -50,7 +50,7 @@
                                  "CheckB" {"dev"  {:overall-status :ok}
                                            "test" {:overall-status :ok}
                                            "prod" {:overall-status :ok}}})]
-        (is (= :error (calc-overall-status check-results last-check refresh-frequency)))))))
+        (is (= :defunct (calc-overall-status check-results last-check refresh-frequency)))))))
 
 
 (def flat-results #'os/flat-results)
