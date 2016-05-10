@@ -117,7 +117,7 @@
       (comp/GET (str endpoint "/overview") []
         {:status  200
          :headers {"Content-Type" "text/html"}
-         :body    (eo/render-env-overview check-results xray-config)})
+         :body    (eo/render-env-overview check-results last-check xray-config)})
 
       (comp/GET (str endpoint "/detail/:check-name/:environment") [check-name environment]
         {:status  200

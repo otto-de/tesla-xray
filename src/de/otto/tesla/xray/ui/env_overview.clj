@@ -1,7 +1,8 @@
 (ns de.otto.tesla.xray.ui.env-overview
   (:require [hiccup.page :as hc]
             [ring.util.codec :as co]
-            [clj-time.coerce :as time]))
+            [clj-time.coerce :as time]
+            [de.otto.tesla.xray.ui.overall-status :as os]))
 
 (defn- single-check-result-as-html [{:keys [status message time-taken stop-time]}]
   (let [stop-time-str (if stop-time (time/from-long stop-time))
@@ -37,7 +38,7 @@
      [:div {:class "check-header"} checkname]
      (map (partial render-results-for-env (count results-for-env) nr-checks-displayed checkname endpoint show-links) sorted-results)]))
 
-(defn render-env-overview [check-results {:keys [endpoint] :as xray-config}]
+(defn render-env-overview [check-results last-check {:keys [endpoint] :as xray-config}]
   (hc/html5
     [:head
      [:meta {:charset "utf-8"}]
@@ -45,6 +46,7 @@
      (hc/include-css "/stylesheets/base.css")]
     [:body
      [:header
-      [:h1 [:a {:class "index-link" :href endpoint}"<-"] "XRayCheck Results"]]
+      [:h1 [:a {:class "index-link" :href endpoint} "<-"] "XRayCheck Results"]
+      (os/render-overall-status-container check-results last-check xray-config)]
      [:div {:class "check-result-container"}
       (map (partial check-results-as-html xray-config) @check-results)]]))

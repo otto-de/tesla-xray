@@ -21,7 +21,7 @@
           :warning
           :ok)))))
 
-(defn- render-overall-status-container [check-results last-check {:keys [refresh-frequency endpoint]}]
+(defn render-overall-status-container [check-results last-check {:keys [refresh-frequency endpoint]}]
   (let [the-overall-status (name (calc-overall-status check-results last-check refresh-frequency))]
     [:a {:href (str endpoint"/overview")}
      [:div {:class (str "overall-status-page " the-overall-status)}
