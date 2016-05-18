@@ -38,6 +38,11 @@
      [:div {:class "check-header"} checkname]
      (map (partial render-results-for-env (count results-for-env) nr-checks-displayed checkname endpoint show-links) sorted-results)]))
 
+(defn- render-overall-status-container [check-results last-check {:keys [refresh-frequency]}]
+  (let [the-overall-status (name (os/calc-overall-status check-results last-check refresh-frequency))]
+    [:div {:class (str "env-header " the-overall-status)}
+     the-overall-status]))
+
 (defn render-env-overview [check-results last-check {:keys [endpoint] :as xray-config}]
   (hc/html5
     [:head
@@ -47,6 +52,6 @@
     [:body
      [:header
       [:h1 [:a {:class "index-link" :href endpoint} "<-"] "XRayCheck Results"]
-      (os/render-overall-status-container check-results last-check xray-config)]
+      (render-overall-status-container check-results last-check xray-config)]
      [:div {:class "check-result-container"}
       (map (partial check-results-as-html xray-config) @check-results)]]))
