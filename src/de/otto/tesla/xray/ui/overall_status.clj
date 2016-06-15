@@ -36,6 +36,7 @@
   (hc/html5
     [:head
      [:meta {:charset "utf-8"}]
+     [:meta {:http-equiv "refresh" :content (/ (:refresh-frequency xray-config)  1000) }]
      [:title "XRayCheck Results"]
      (hc/include-css "/stylesheets/base.css" "/stylesheets/overall-status.css")]
     [:body

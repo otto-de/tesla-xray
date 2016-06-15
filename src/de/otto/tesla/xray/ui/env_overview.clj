@@ -43,10 +43,11 @@
     [:div {:class (str "env-header " the-overall-status)}
      the-overall-status]))
 
-(defn render-env-overview [check-results last-check {:keys [endpoint] :as xray-config}]
+(defn render-env-overview [check-results last-check {:keys [endpoint refresh-frequency] :as xray-config}]
   (hc/html5
     [:head
      [:meta {:charset "utf-8"}]
+     [:meta {:http-equiv "refresh" :content (/ refresh-frequency  1000) }]
      [:title "XRayCheck Results"]
      (hc/include-css "/stylesheets/base.css")]
     [:body

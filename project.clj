@@ -1,4 +1,4 @@
-(defproject de.otto/tesla-xray "0.2.23"
+(defproject de.otto/tesla-xray "0.3.23"
   :description "a component to execute and visualize checks written in clj"
   :url "https://github.com/otto-de/tesla-xray.git"
   :license {:name "Apache License 2.0"

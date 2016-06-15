@@ -9,10 +9,11 @@
        (eo/render-results-for-env 1 max-check-history check-name endpoint show-links [current-env result-map])]
       [:div "NO DATA FOUND"])))
 
-(defn render-detail-page [check-results {:keys [endpoint] :as xray-config} check-name current-env]
+(defn render-detail-page [check-results {:keys [endpoint refresh-frequency] :as xray-config} check-name current-env]
   (hc/html5
     [:head
      [:meta {:charset "utf-8"}]
+     [:meta {:http-equiv "refresh" :content (/ refresh-frequency  1000) }]
      [:title "XRayCheck Results"]
      (hc/include-css "/stylesheets/base.css")]
     [:body
