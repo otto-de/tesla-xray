@@ -12,7 +12,7 @@
   :profiles {:dev {:plugins      [[lein-ancient "0.5.4"]]
                    :main de.otto.tesla.xray.testsystem
                    :source-paths ["src" "test"]
-                   :dependencies [[de.otto./tesla-microservice "0.1.32"]
+                   :dependencies [[de.otto/tesla-microservice "0.1.32"]
                                   [me.lomin/component-restart "0.1.0"]
                                   [de.otto/tesla-jetty "0.1.1"]
                                   [ring-mock "0.1.5"]]}})
