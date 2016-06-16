@@ -37,7 +37,7 @@
       (send-alerts! alerting-function check-name current-env results overall-status))))
 
 (defn- append-result [old-results result max-check-history]
-  (let [limited-results (take (- max-check-history 1) old-results)]
+  (let [limited-results (take (dec max-check-history) old-results)]
     (conj limited-results result)))
 
 (defn existing-status-has-changed? [overall-status new-overall-status]
@@ -47,7 +47,7 @@
 (defn initial-status-is-failure? [overall-status new-overall-status]
   (and
     (nil? overall-status)
-    (not (= :ok new-overall-status))))
+    (not= :ok new-overall-status)))
 
 (defn- update-results! [{:keys [alerting-fn check-results xray-config]} {:keys [check-name strategy]} current-env result]
   (let [{:keys [max-check-history]} xray-config
@@ -67,7 +67,7 @@
       (chk/start-check xray-check current-env)
       (chk/->XRayCheckResult :warning "no xray-result returned by check"))
     (catch Throwable t
-      (log/error t "Exception thrown in check " (:check-name xray-check ))
+      (log/error t "Exception thrown in check " (:check-name xray-check))
       (chk/->XRayCheckResult :error (.getMessage t)))))
 
 (defn- check-result-with-timings [[^RegisteredXRayCheck xray-check current-env]]

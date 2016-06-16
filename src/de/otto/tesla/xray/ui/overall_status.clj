@@ -29,14 +29,14 @@
 
 (defn readable-timestamp [last-check]
   (if-let [millis @last-check]
-    (.toString (DateTime. millis (DateTimeZone/forID "Europe/Berlin")))
+    (str (DateTime. millis (DateTimeZone/forID "Europe/Berlin")))
     "no check started"))
 
 (defn render-overall-status [check-results last-check xray-config]
   (hc/html5
     [:head
      [:meta {:charset "utf-8"}]
-     [:meta {:http-equiv "refresh" :content (/ (:refresh-frequency xray-config)  1000) }]
+     [:meta {:http-equiv "refresh" :content (/ (:refresh-frequency xray-config)  1000)}]
      [:title "XRayCheck Results"]
      (hc/include-css "/stylesheets/base.css" "/stylesheets/overall-status.css")]
     [:body
