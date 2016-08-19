@@ -167,7 +167,7 @@
           (let [response (handlers (mock/request :get "/xray-checker/overview"))]
             (is (= 200 (:status response)))
             (is (= {"Content-Type" "text/html"} (:headers response)))
-            (is (= true (.contains (:body response) "2015-11-10T10:40:24.778Z tt:0 dummy-message")))))
+            (is (= true (.contains (:body response) "2015.11.10 11:40:24 tt:0 dummy-message")))))
 
         (testing "should visualize the overall-status on root-page"
           (let [response (handlers (mock/request :get "/xray-checker"))]
@@ -180,7 +180,7 @@
             (is (= 200 (:status response)))
             (is (= {"Content-Type" "text/html"} (:headers response)))
             (is (= true (.contains (:body response) "dev")))
-            (is (= true (.contains (:body response) "2015-11-10T10:40:24.778Z tt:0 dummy-message")))))
+            (is (= true (.contains (:body response) "2015.11.10 11:40:24 tt:0 dummy-message")))))
         (finally
           (comp/stop started))))))
 

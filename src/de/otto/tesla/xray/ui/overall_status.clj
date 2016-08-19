@@ -1,7 +1,6 @@
 (ns de.otto.tesla.xray.ui.overall-status
   (:require [hiccup.page :as hc]
-            [de.otto.tesla.xray.util.utils :as utils])
-  (:import (org.joda.time DateTime DateTimeZone)))
+            [de.otto.tesla.xray.util.utils :as utils]))
 
 (defn- flat-results [check-results]
   (mapcat vals (vals @check-results)))
@@ -23,24 +22,20 @@
 
 (defn render-overall-status-container [check-results last-check {:keys [refresh-frequency endpoint]}]
   (let [the-overall-status (name (calc-overall-status check-results last-check refresh-frequency))]
-    [:a {:href (str endpoint"/overview")}
+    [:a {:href (str endpoint "/overview")}
      [:div {:class (str "overall-status-page " the-overall-status)}
       the-overall-status]]))
-
-(defn readable-timestamp [last-check]
-  (if-let [millis @last-check]
-    (str (DateTime. millis (DateTimeZone/forID "Europe/Berlin")))
-    "no check started"))
 
 (defn render-overall-status [check-results last-check xray-config]
   (hc/html5
     [:head
      [:meta {:charset "utf-8"}]
-     [:meta {:http-equiv "refresh" :content (/ (:refresh-frequency xray-config)  1000)}]
+     [:meta {:http-equiv "refresh" :content (/ (:refresh-frequency xray-config) 1000)}]
      [:title "XRayCheck Results"]
      (hc/include-css "/stylesheets/base.css" "/stylesheets/overall-status.css")]
     [:body
      [:header
       [:h1 "XRayCheck Overall-Status"]
-      [:h2 "Last check: " (readable-timestamp last-check)]]
+      [:span {:class "last-check"}
+       [:h2 "Last check: " (utils/readable-timestamp @last-check)]]]
      (render-overall-status-container check-results last-check xray-config)]))

@@ -82,6 +82,10 @@ div.env-results-container {
     float:left;
 }
 
+span.last-check {
+    color: #e0f8ff;
+}
+
 div.env-header {
     font-size: 25px;
     color: black;

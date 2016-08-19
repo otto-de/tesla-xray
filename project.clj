@@ -7,7 +7,7 @@
                  [overtone/at-at "1.2.0"]
                  [hiccup "1.0.5"]
                  [ring/ring-codec "1.0.0"]
-                 [clj-time "0.11.0"]]
+                 [clj-time "0.12.0"]]
 
   :profiles {:dev {:plugins      [[lein-ancient "0.5.4"]]
                    :main de.otto.tesla.xray.testsystem

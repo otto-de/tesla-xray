@@ -1,11 +1,11 @@
 (ns de.otto.tesla.xray.ui.env-overview
   (:require [hiccup.page :as hc]
             [ring.util.codec :as co]
-            [clj-time.coerce :as time]
-            [de.otto.tesla.xray.ui.overall-status :as os]))
+            [de.otto.tesla.xray.ui.overall-status :as os]
+            [de.otto.tesla.xray.util.utils :as utils]))
 
 (defn- single-check-result-as-html [{:keys [status message time-taken stop-time]}]
-  (let [stop-time-str (if stop-time (time/from-long stop-time))
+  (let [stop-time-str (or (utils/readable-timestamp stop-time) "")
         text (str stop-time-str " tt:" time-taken " " message)]
     [:div {:class (name status)} text]))
 
@@ -53,6 +53,7 @@
     [:body
      [:header
       [:h1 [:a {:class "index-link" :href endpoint} "<-"] "XRayCheck Results"]
+      [:h2 [:span {:class "last-check"} "Last check: " (utils/readable-timestamp @last-check)]]
       (render-overall-status-container check-results last-check xray-config)]
      [:div {:class "check-result-container"}
       (map (partial check-results-as-html xray-config) @check-results)]]))

@@ -8,12 +8,19 @@
             [clojure.tools.logging :as log])
   (:gen-class))
 
+(defn random-tt []
+  (rand-int 100))
+
+(defn tstmp []
+  (let [ten-minutes (* 1000 60 10)]
+    (- (System/currentTimeMillis) (rand-int ten-minutes))))
+
 (defn random-result [_]
   (case (rand-int 4)
-    0 (chk/->XRayCheckResult :ok "ok")
-    1 (chk/->XRayCheckResult :error "error")
-    2 (chk/->XRayCheckResult :warning "warning")
-    3 (chk/->XRayCheckResult :none "no status")))
+    0 (chk/->XRayCheckResult :ok "ok" (random-tt) (tstmp))
+    1 (chk/->XRayCheckResult :error "error" (random-tt) (tstmp))
+    2 (chk/->XRayCheckResult :warning "warning" (random-tt) (tstmp))
+    3 (chk/->XRayCheckResult :none "no status" (random-tt) (tstmp))))
 
 (defn n-random-results [n]
   (let [results (into [] (map random-result (range n)))]
