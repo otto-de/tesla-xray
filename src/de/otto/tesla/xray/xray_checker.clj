@@ -67,7 +67,7 @@
       (chk/start-check xray-check current-env)
       (chk/->XRayCheckResult :warning "no xray-result returned by check"))
     (catch Throwable t
-      (log/error t "Exception thrown in check " (:check-name xray-check))
+      (log/info t "Exception thrown in check " (:check-name xray-check))
       (chk/->XRayCheckResult :error (.getMessage t)))))
 
 (defn- check-result-with-timings [[^RegisteredXRayCheck xray-check current-env]]

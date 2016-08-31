@@ -17,7 +17,7 @@
        (catch TimeoutException x#
          (do
            (when-not (future-cancel future#)
-             (log/error "Was not able to cancel future..."))
+             (log/warn "Was not able to cancel future..."))
            ~fallback)))))
 
 (defn readable-timestamp [millis]
