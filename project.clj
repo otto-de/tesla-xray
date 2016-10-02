@@ -3,13 +3,13 @@
   :url "https://github.com/otto-de/tesla-xray.git"
   :license {:name "Apache License 2.0"
             :url  "http://www.apache.org/license/LICENSE-2.0.html"}
-  :dependencies [[org.clojure/clojure "1.7.0"]
+  :dependencies [[org.clojure/clojure "1.8.0"]
                  [overtone/at-at "1.2.0"]
                  [hiccup "1.0.5"]
                  [ring/ring-codec "1.0.1"]
                  [clj-time "0.12.0"]]
 
-  :profiles {:dev {:plugins      [[lein-ancient "0.5.4"]]
+  :profiles {:dev {:plugins      [[lein-ancient "0.6.10"]]
                    :main de.otto.tesla.xray.testsystem
                    :source-paths ["src" "test"]
                    :dependencies [[de.otto/tesla-microservice "0.3.36"]
