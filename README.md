@@ -2,7 +2,11 @@
 tesla-xray is a component for executing and visualizing checks.   
 It can be used with the tesla-microservice.
 
-		[de.otto/tesla-xray "0.2.19"]
+		[![Clojars Project](http://clojars.org/de.otto/tesla-microservice/latest-version.svg)](http://clojars.org/de.otto/tesla-xray)
+
+[![Build Status](https://travis-ci.org/otto-de/tesla-xray.svg)](https://travis-ci.org/otto-de/tesla-xray)
+[![Dependencies Status](http://jarkeeper.com/otto-de/tesla-xray/status.svg)](http://jarkeeper.com/otto-de/tesla-xray)
+
   
 Checks return Check-Results which currently look like this:
 
