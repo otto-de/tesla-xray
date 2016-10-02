@@ -6,13 +6,13 @@
   :dependencies [[org.clojure/clojure "1.7.0"]
                  [overtone/at-at "1.2.0"]
                  [hiccup "1.0.5"]
-                 [ring/ring-codec "1.0.0"]
+                 [ring/ring-codec "1.0.1"]
                  [clj-time "0.12.0"]]
 
   :profiles {:dev {:plugins      [[lein-ancient "0.5.4"]]
                    :main de.otto.tesla.xray.testsystem
                    :source-paths ["src" "test"]
-                   :dependencies [[de.otto/tesla-microservice "0.1.32"]
-                                  [me.lomin/component-restart "0.1.0"]
-                                  [de.otto/tesla-jetty "0.1.1"]
+                   :dependencies [[de.otto/tesla-microservice "0.3.36"]
+                                  [me.lomin/component-restart "0.1.1"]
+                                  [de.otto/tesla-jetty "0.1.2"]
                                   [ring-mock "0.1.5"]]}})
