@@ -132,7 +132,7 @@
         (try
           (chkr/register-check xray-checker (->DummyCheckWithoutReturnedStatus) "DummyCheckWithoutReturnedStatus")
           (start-the-xraychecks xray-checker)
-          (Thread/sleep 10)
+          (Thread/sleep 20)
           (is (= {"DummyCheckWithoutReturnedStatus" {"dev" {:overall-status :warning
                                                             :results        [(chk/->XRayCheckResult :warning "no xray-result returned by check" 0 10)]}}}
                  @(:check-results xray-checker)))
@@ -146,7 +146,7 @@
         (try
           (chkr/register-check xray-checker (->AssertionCheck) "AssertionCheck")
           (start-the-xraychecks xray-checker)
-          (Thread/sleep 10)
+          (Thread/sleep 20)
           (is (= {"AssertionCheck" {"dev" {:overall-status :error
                                            :results        [(chk/->XRayCheckResult :error "Assert failed: (= 1 2)" 0 10)]}}}
                  @(:check-results xray-checker)))
