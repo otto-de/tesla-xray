@@ -23,6 +23,13 @@ body {
     background-color: rgba(0, 255, 127, 0.35);
 }
 
+.acknowledged {
+    background-color: #49A8FF;
+    font-size: 20px;
+    color: darkgray;
+    background-color: rgba(73, 168, 255, 1);
+}
+
 .env-header.error {
     background-color: rgba(255, 0, 0, 1);
 }

@@ -15,6 +15,11 @@
   (start-check [_ _]
     (chk/->XRayCheckResult :ok "dummy-message")))
 
+(defrecord ErrorCheck []
+  chk/XRayCheck
+  (start-check [_ _]
+    (chk/->XRayCheckResult :error "error-message")))
+
 (defrecord BlockingCheck []
   chk/XRayCheck
   (start-check [_ _]
@@ -122,6 +127,40 @@
                  @(:check-results xray-checker)))
           (finally
             (comp/stop started)))))))
+
+(deftest acknowledged-checks
+  (testing "should apply the acknowledged state to acknowledged checks"
+    (let [started (comp/start (test-system {:test-check-frequency    "100"
+                                            :test-check-environments "dev"
+                                            :test-max-check-history  "2"}))
+          xray-checker (:xray-checker started)]
+      (chkr/register-check xray-checker (->ErrorCheck) "ErrorCheck")
+      (try
+        (with-redefs [utils/current-time (fn [] 10)]
+          (is (= {}
+                 @(:acknowledged-checks xray-checker)))
+          (start-the-xraychecks xray-checker)
+          (is (= {"ErrorCheck" {"dev" {:overall-status :error
+                                       :results        [(chk/->XRayCheckResult :error "error-message" 0 10)]}}}
+                 @(:check-results xray-checker)))
+          (swap! (:acknowledged-checks xray-checker) assoc "ErrorCheck" 15)
+          (start-the-xraychecks xray-checker)
+          (is (= {"ErrorCheck" {"dev" {:overall-status :acknowledged
+                                       :results        [(chk/->XRayCheckResult :error "error-message" 0 10)
+                                                        (chk/->XRayCheckResult :error "error-message" 0 10)]}}}
+                 @(:check-results xray-checker))))
+
+        (with-redefs [utils/current-time (fn [] 20)]
+          (start-the-xraychecks xray-checker)
+          (is (= {}
+                 @(:acknowledged-checks xray-checker)))
+          (is (= {"ErrorCheck" {"dev" {:overall-status :error
+                                       :results        [(chk/->XRayCheckResult :error "error-message" 0 20)
+                                                        (chk/->XRayCheckResult :error "error-message" 0 10)]}}}
+                 @(:check-results xray-checker))))
+        (finally
+          (comp/stop started))))))
+
 
 (deftest error-handling
   (testing "should store warning-result for check without a propper return message"

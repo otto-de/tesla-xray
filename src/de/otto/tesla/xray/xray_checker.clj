@@ -49,11 +49,13 @@
     (nil? overall-status)
     (not= :ok new-overall-status)))
 
-(defn- update-results! [{:keys [alerting-fn check-results xray-config]} {:keys [check-name strategy]} current-env result]
+(defn- update-results! [{:keys [alerting-fn check-results xray-config acknowledged-checks]} {:keys [check-name strategy]} current-env result]
   (let [{:keys [max-check-history]} xray-config
         {:keys [results overall-status]} (get-in @check-results [check-name current-env])
         new-results (append-result results result max-check-history)
-        new-overall-status (strategy new-results)]
+        new-overall-status (if (contains? @acknowledged-checks check-name)
+                             :acknowledged
+                             (strategy new-results))]
     (swap! check-results assoc-in [check-name current-env :results] new-results)
     (swap! check-results assoc-in [check-name current-env :overall-status] new-overall-status)
     (when (or
@@ -95,7 +97,16 @@
         map-entries (map (partial entry-with-started-future timeout) checks+env)]
     (into {} map-entries)))
 
+
+
+(defn clear-outdated-acknowledgements! [{:keys [acknowledged-checks]}]
+  (swap! acknowledged-checks (fn [acknowledged-checks] (->>
+                                                         acknowledged-checks
+                                                         (filter #(> (second %) (utils/current-time)))
+                                                         (into {})))))
+
 (defn- start-the-xraychecks [{:keys [last-check registered-checks xray-config] :as self}]
+  (clear-outdated-acknowledgements! self)
   (let [checks+env (build-check-name-env-vecs (:environments xray-config) @registered-checks)
         checks+env-to-futures (build-future-map xray-config checks+env)]
     (doseq [[[^RegisteredXRayCheck xray-check current-env] f] checks+env-to-futures]
@@ -139,7 +150,8 @@
                      :alerting-fn (atom nil)
                      :last-check (atom nil)
                      :registered-checks (atom {})
-                     :check-results (atom {}))
+                     :check-results (atom {})
+                     :acknowledged-checks (atom {}))
           frequency (get-in new-self [:xray-config :refresh-frequency])]
       (hndl/register-handler handler (xray-routes new-self))
       (log/info "this is your xray-config:  " (:xray-config new-self))
