@@ -213,5 +213,5 @@
           check-b (chkr/->RegisteredXRayCheck "B" "B" "B")]
       (is (= [[check-a "dev"] [check-a "test"]
               [check-b "dev"] [check-b "test"]]
-             (build-check-name-env-vecs ["dev" "test"] (atom {"CheckA" check-a
-                                                              "CheckB" check-b})))))))
+             (build-check-name-env-vecs ["dev" "test"] {"CheckA" check-a
+                                                        "CheckB" check-b}))))))

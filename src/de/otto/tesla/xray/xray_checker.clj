@@ -76,13 +76,10 @@
         stop-time (utils/current-time)]
     (chk/with-timings check-result (- stop-time start-time) stop-time)))
 
-(defn- with-evironments [environments check]
-  (map (fn [env] [check env]) environments))
-
 (defn- build-check-name-env-vecs [environments registered-checks]
-  (->> @registered-checks
-       (mapcat (fn [[_ ^RegisteredXRayCheck check]] (with-evironments environments check)))
-       (into [])))
+  (for [check (vals registered-checks)
+        environment environments]
+    [check environment]))
 
 (defn- timeout-response [check-name timeout]
   (chk/->XRayCheckResult :error (str check-name " did not finish in " timeout " ms") timeout (utils/current-time)))
@@ -99,7 +96,7 @@
     (into {} map-entries)))
 
 (defn- start-the-xraychecks [{:keys [last-check registered-checks xray-config] :as self}]
-  (let [checks+env (build-check-name-env-vecs (:environments xray-config) registered-checks)
+  (let [checks+env (build-check-name-env-vecs (:environments xray-config) @registered-checks)
         checks+env-to-futures (build-future-map xray-config checks+env)]
     (doseq [[[^RegisteredXRayCheck xray-check current-env] f] checks+env-to-futures]
       (update-results! self xray-check current-env (deref f)))
