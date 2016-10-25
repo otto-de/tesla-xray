@@ -8,11 +8,12 @@
                  [hiccup "1.0.5"]
                  [ring/ring-codec "1.0.1"]
                  [clj-time "0.12.0"]]
-
+  :test-paths ["test" "test-resources"]
   :profiles {:dev {:plugins      [[lein-ancient "0.6.10"]]
                    :main de.otto.tesla.xray.testsystem
                    :source-paths ["src" "test"]
                    :dependencies [[de.otto/tesla-microservice "0.3.36"]
                                   [me.lomin/component-restart "0.1.1"]
+                                  [de.otto.tesla/basic-logging "0.2.3"]
                                   [de.otto/tesla-jetty "0.1.2"]
                                   [ring-mock "0.1.5"]]}})

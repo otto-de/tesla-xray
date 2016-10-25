@@ -1,0 +1,17 @@
+<configuration>
+    <contextName>tesla-xray</contextName>
+
+    <conversionRule conversionWord="mescaped"
+                    converterClass="de.otto.util.escapingmessageconverter" />
+
+    <appender name="consoleAppender" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%gray(%date{HH:mm:ss.SSS}) [%thread] %highlight(%-5level) %cyan(%logger{15}) %mescaped%n</pattern>
+        </encoder>
+    </appender>
+
+    <root level="${log_level:-info}">
+        <appender-ref ref="${log_appender:-consoleAppender}"/>
+    </root>
+
+</configuration>
