@@ -45,7 +45,7 @@
         (testing "should register the check"
           (chkr/register-check xray-checker (->ErrorCheck should-fail?) "DummyCheckA")
           (is (= {"DummyCheckA" (chkr/->RegisteredXRayCheck (->ErrorCheck should-fail?) "DummyCheckA" chkr/default-strategy)}
-                 @(:checks xray-checker))))
+                 @(:registered-checks xray-checker))))
 
         (testing "should execute the first run without alerting"
           (start-the-xraychecks xray-checker)

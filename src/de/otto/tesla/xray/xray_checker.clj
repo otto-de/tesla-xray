@@ -79,8 +79,8 @@
 (defn- with-evironments [environments check]
   (map (fn [env] [check env]) environments))
 
-(defn- build-check-name-env-vecs [environments checks]
-  (->> @checks
+(defn- build-check-name-env-vecs [environments registered-checks]
+  (->> @registered-checks
        (mapcat (fn [[_ ^RegisteredXRayCheck check]] (with-evironments environments check)))
        (into [])))
 
@@ -98,8 +98,8 @@
         map-entries (map (partial entry-with-started-future timeout) checks+env)]
     (into {} map-entries)))
 
-(defn- start-the-xraychecks [{:keys [last-check checks xray-config] :as self}]
-  (let [checks+env (build-check-name-env-vecs (:environments xray-config) checks)
+(defn- start-the-xraychecks [{:keys [last-check registered-checks xray-config] :as self}]
+  (let [checks+env (build-check-name-env-vecs (:environments xray-config) registered-checks)
         checks+env-to-futures (build-future-map xray-config checks+env)]
     (doseq [[[^RegisteredXRayCheck xray-check current-env] f] checks+env-to-futures]
       (update-results! self xray-check current-env (deref f)))
@@ -141,7 +141,7 @@
                      :executor executor
                      :alerting-fn (atom nil)
                      :last-check (atom nil)
-                     :checks (atom {})
+                     :registered-checks (atom {})
                      :check-results (atom {}))
           frequency (get-in new-self [:xray-config :refresh-frequency])]
       (hndl/register-handler handler (xray-routes new-self))
@@ -169,7 +169,7 @@
 
   (register-check-with-strategy [self check checkname strategy]
     (log/info "registering check with name: " checkname)
-    (swap! (:checks self) assoc checkname (->RegisteredXRayCheck check checkname strategy))))
+    (swap! (:registered-checks self) assoc checkname (->RegisteredXRayCheck check checkname strategy))))
 
 (defn new-xraychecker [which-checker]
   (map->XrayChecker {:which-checker which-checker}))

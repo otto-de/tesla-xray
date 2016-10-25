@@ -59,7 +59,7 @@
         (try
           (is (= {"DummyCheckA" (chkr/->RegisteredXRayCheck (->DummyCheck) "DummyCheckA" chkr/default-strategy)
                   "DummyCheckB" (chkr/->RegisteredXRayCheck (->DummyCheck) "DummyCheckB" chkr/default-strategy)}
-                 @(:checks xray-checker)))
+                 @(:registered-checks xray-checker)))
           (Thread/sleep 100)
           (is (= {"DummyCheckA" {"dev" {:overall-status :ok
                                         :results        [(chk/->XRayCheckResult :ok "dummy-message" 0 10)]}}
@@ -78,7 +78,7 @@
         (chkr/register-check xray-checker (->BlockingCheck) "BlockingCheck")
         (try
           (is (= {"BlockingCheck" (chkr/->RegisteredXRayCheck (->BlockingCheck) "BlockingCheck" chkr/default-strategy)}
-                 @(:checks xray-checker)))
+                 @(:registered-checks xray-checker)))
           (Thread/sleep 310)
           (is (= {"BlockingCheck" {"dev" {:overall-status :error
                                           :results        [(chk/->XRayCheckResult :error "BlockingCheck did not finish in 100 ms" 100 10)
@@ -97,7 +97,7 @@
         (try
           (is (= {"DummyCheckA" (chkr/->RegisteredXRayCheck (->DummyCheck) "DummyCheckA" chkr/default-strategy)
                   "DummyCheckB" (chkr/->RegisteredXRayCheck (->DummyCheck) "DummyCheckB" chkr/default-strategy)}
-                 @(:checks xray-checker)))
+                 @(:registered-checks xray-checker)))
           (start-the-xraychecks xray-checker)
           (is (= {"DummyCheckA" {"dev" {:overall-status :ok
                                         :results        [(chk/->XRayCheckResult :ok "dummy-message" 0 10)]}}
