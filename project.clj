@@ -14,6 +14,5 @@
                    :source-paths ["src" "test"]
                    :dependencies [[de.otto/tesla-microservice "0.3.36"]
                                   [me.lomin/component-restart "0.1.1"]
-                                  [de.otto.tesla/basic-logging "0.2.3"]
                                   [de.otto/tesla-jetty "0.1.2"]
                                   [ring-mock "0.1.5"]]}})
