@@ -145,7 +145,7 @@
                      :check-results (atom {}))
           frequency (get-in new-self [:xray-config :refresh-frequency])]
       (hndl/register-handler handler (xray-routes new-self))
-      (log/info "running checks every " frequency "ms")
+      (log/info "this is your xray-config:  " (:xray-config new-self))
       (if frequency
         (assoc new-self
           :schedule (at/every frequency
