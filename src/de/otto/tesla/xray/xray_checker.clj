@@ -55,7 +55,7 @@
   (let [{:keys [max-check-history]} xray-config
         {:keys [results overall-status]} (get-in @check-results [check-name current-env])
         new-results (append-result results result max-check-history)
-        new-overall-status (if (contains? @acknowledged-checks check-name)
+        new-overall-status (if (contains? (get @acknowledged-checks check-name) current-env)
                              :acknowledged
                              (strategy new-results))]
     (swap! check-results assoc-in [check-name current-env :results] new-results)
@@ -99,13 +99,15 @@
         map-entries (map (partial entry-with-started-future timeout) checks+env)]
     (into {} map-entries)))
 
-
-
 (defn clear-outdated-acknowledgements! [{:keys [acknowledged-checks]}]
   (swap! acknowledged-checks (fn [acknowledged-checks] (->>
                                                          acknowledged-checks
-                                                         (filter #(> (second %) (utils/current-time)))
-                                                         (into {})))))
+                                                         (map (fn [[check-name env-to-time-map]]
+                                                                [check-name
+                                                                 (into {} (filter #(> (second %) (utils/current-time)) env-to-time-map))]))
+                                                         (filter #(not-empty (second %)))
+                                                         (into {})
+                                                         ))))
 
 (defn- start-the-xraychecks [{:keys [last-check registered-checks xray-config] :as self}]
   (clear-outdated-acknowledgements! self)
@@ -115,13 +117,13 @@
       (update-results! self xray-check current-env (deref f)))
     (reset! last-check (utils/current-time))))
 
-(defn acknowledge-check! [acknowledged-checks check-name duration-in-min]
+(defn acknowledge-check! [acknowledged-checks check-name environment duration-in-min]
   (let [duration-in-ms (* 60 1000 (Long/parseLong duration-in-min))]
-    (swap! acknowledged-checks assoc check-name (+ duration-in-ms (utils/current-time))))
-  (print @acknowledged-checks))
+    (swap! acknowledged-checks assoc-in [check-name environment] (+ duration-in-ms (utils/current-time)))))
 
-(defn remove-acknowledgement! [acknowledged-checks check-name]
-  (swap! acknowledged-checks dissoc check-name))
+(defn remove-acknowledgement! [acknowledged-checks check-name environment]
+  (swap! acknowledged-checks update check-name dissoc environment)
+  (swap! acknowledged-checks (fn [x] (into {} (filter #(not-empty (second %)) x)))))
 
 (defn stringify-acknowledged-checks [acknowledged-checks]
   (json/write-str @acknowledged-checks))
@@ -151,15 +153,15 @@
            :headers {"Content-Type" "text/plain"}
            :body    (stringify-acknowledged-checks acknowledged-checks)})
 
-        (comp/POST (str endpoint "/acknowledged-checks") [check-name minutes]
+        (comp/POST (str endpoint "/acknowledged-checks") [check-name environment minutes]
           {:status  200
            :headers {"Content-Type" "text/plain"}
-           :body    (acknowledge-check! acknowledged-checks check-name minutes)})
+           :body    (acknowledge-check! acknowledged-checks check-name environment minutes)})
 
-        (comp/DELETE (str endpoint "/acknowledged-checks/:check-name") [check-name]
+        (comp/DELETE (str endpoint "/acknowledged-checks/:check-name") [check-name environment]
           {:status  200
            :headers {"Content-Type" "text/plain"}
-           :body    (remove-acknowledgement! acknowledged-checks check-name)})
+           :body    (remove-acknowledgement! acknowledged-checks check-name environment)})
         ))))
 
 

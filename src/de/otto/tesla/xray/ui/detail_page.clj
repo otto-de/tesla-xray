@@ -8,7 +8,7 @@
     (if-let [result-map (get-in @check-results [check-name current-env])]
       [:div {:class "single-check-results"}
        (eo/render-results-for-env 1 max-check-history check-name endpoint show-links [current-env result-map]
-                                  (str "onAcknowledgementClick(\"" endpoint "\", \"" check-name "\", " acknowledge-minutes-to-expire ")"))]
+                                  (str "onAcknowledgementClick(\"" endpoint "\", \"" check-name "\", \"" current-env "\", " acknowledge-minutes-to-expire ")"))]
       [:div "NO DATA FOUND"])))
 
 (defn render-detail-page [check-results {:keys [endpoint refresh-frequency] :as xray-config} check-name current-env]

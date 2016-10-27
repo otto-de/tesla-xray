@@ -8,7 +8,8 @@
     [com.stuartsierra.component :as c]
     [de.otto.tesla.xray.util.utils :as utils]
     [de.otto.tesla.stateful.handler :as handler]
-    [ring.mock.request :as mock]))
+    [ring.mock.request :as mock]
+    [overtone.at-at :as at]))
 
 (defrecord DummyCheck []
   chk/XRayCheck
@@ -70,7 +71,10 @@
                                         :results        [(chk/->XRayCheckResult :ok "dummy-message" 0 10)]}}
                   "DummyCheckB" {"dev" {:overall-status :ok
                                         :results        [(chk/->XRayCheckResult :ok "dummy-message" 0 10)]}}}
-                 @(:check-results xray-checker))))))))
+                 @(:check-results xray-checker)))
+          (finally
+            (comp/stop started)))
+        ))))
 
 
 (deftest should-handle-blocking-checks
@@ -88,7 +92,9 @@
           (is (= {"BlockingCheck" {"dev" {:overall-status :error
                                           :results        [(chk/->XRayCheckResult :error "BlockingCheck did not finish in 100 ms" 100 10)
                                                            (chk/->XRayCheckResult :error "BlockingCheck did not finish in 100 ms" 100 10)]}}}
-                 @(:check-results xray-checker))))))))
+                 @(:check-results xray-checker)))
+          (finally
+            (comp/stop started)))))))
 
 (deftest checks-and-check-results
   (testing "should register, check and store results"
@@ -129,27 +135,28 @@
             (comp/stop started))))))
 
   (testing "should apply the correct state to checks that are in the acknowledged atom"
-    (let [started (comp/start (test-system {:test-check-frequency    "100"
+    (let [started (comp/start (test-system {:test-check-frequency    "200000"
                                             :test-check-environments "dev"
                                             :test-max-check-history  "2"}))
           xray-checker (:xray-checker started)]
       (chkr/register-check xray-checker (->ErrorCheck) "ErrorCheck")
       (try
-        (with-redefs [utils/current-time (fn [] 10)]
+        (with-redefs [utils/current-time (constantly 10)]
           (is (= {}
                  @(:acknowledged-checks xray-checker)))
           (start-the-xraychecks xray-checker)
           (is (= {"ErrorCheck" {"dev" {:overall-status :error
                                        :results        [(chk/->XRayCheckResult :error "error-message" 0 10)]}}}
                  @(:check-results xray-checker)))
-          (swap! (:acknowledged-checks xray-checker) assoc "ErrorCheck" 15)
+          (swap! (:acknowledged-checks xray-checker) assoc-in ["ErrorCheck" "dev"] 15)
           (start-the-xraychecks xray-checker)
           (is (= {"ErrorCheck" {"dev" {:overall-status :acknowledged
                                        :results        [(chk/->XRayCheckResult :error "error-message" 0 10)
                                                         (chk/->XRayCheckResult :error "error-message" 0 10)]}}}
                  @(:check-results xray-checker))))
 
-        (with-redefs [utils/current-time (fn [] 20)]
+        (with-redefs [utils/current-time (constantly 20)
+                      at/every (constantly nil)]
           (start-the-xraychecks xray-checker)
           (is (= {}
                  @(:acknowledged-checks xray-checker)))
@@ -247,30 +254,26 @@
   (testing "should put a check object with correct expire time in the acknowledged-checks atom"
     (with-redefs [utils/current-time (constantly 10)]
       (let [acknowledged-checks (atom {})]
-        (chkr/acknowledge-check! acknowledged-checks "oneHourAcknowledgement" "60")
-        (is (= ["oneHourAcknowledgement" (+ 10 (* 60 60 1000))] (first @acknowledged-checks))))))
-  (testing "should work for long expiry times"
+        (chkr/acknowledge-check! acknowledged-checks "oneHourAcknowledgement" "test-env" "60")
+        (is (= ["oneHourAcknowledgement" {"test-env" (+ 10 (* 60 60 1000))}] (first @acknowledged-checks))))))
+
+  (testing "should keep other environments unchanged when adding ack for same check in different env"
     (with-redefs [utils/current-time (constantly 10)]
-      (let [acknowledged-checks (atom {})]
-        (chkr/acknowledge-check! acknowledged-checks "oneYearAcknowledgement" (str (* 60 24 365)))
-        (is (= ["oneYearAcknowledgement" (+ 10 (* 365 24 60 60 1000))] (first @acknowledged-checks))))))
+      (let [acknowledged-checks (atom {"oneHourAcknowledgement" {"otherEnv" 20}})]
+        (chkr/acknowledge-check! acknowledged-checks "oneHourAcknowledgement" "test-env" "60")
+        (is (= ["oneHourAcknowledgement" {"test-env" (+ 10 (* 60 60 1000))
+                                          "otherEnv" 20}] (first @acknowledged-checks))))))
+
 
   (testing "should remove a check object regardless of it's expire time"
-    (let [acknowledged-checks (atom {"checkToBeRemoved" 1000})]
-      (chkr/remove-acknowledgement! acknowledged-checks "checkToBeRemoved")
+    (let [acknowledged-checks (atom {"checkToBeRemoved" {"testEnv" 1000}})]
+      (chkr/remove-acknowledgement! acknowledged-checks "checkToBeRemoved" "testEnv")
       (is (= {} @acknowledged-checks))))
-
-  (testing "should stringify an empty acknowledgement map"
-    (let [acknowledged-checks (atom {})]
-      (is (= "{}" (chkr/stringify-acknowledged-checks acknowledged-checks)))))
-
-  (testing "should stringify acknowledgement map with one check"
-    (let [acknowledged-checks (atom {"firstCheck" 100})]
-      (is (= "{\"firstCheck\":100}" (chkr/stringify-acknowledged-checks acknowledged-checks)))))
-
-  (testing "should stringify acknowledgement map with two checks"
-    (let [acknowledged-checks (atom {"firstCheck" 100 "secondCheck" 500})]
-      (is (= "{\"firstCheck\":100,\"secondCheck\":500}" (chkr/stringify-acknowledged-checks acknowledged-checks))))))
+  (testing "should only remove one env and keep the other one"
+    (let [acknowledged-checks (atom {"checkToBeRemoved" {"dropEnv" 1000
+                                                         "keepEnv" 100}})]
+      (chkr/remove-acknowledgement! acknowledged-checks "checkToBeRemoved" "dropEnv")
+      (is (= {"checkToBeRemoved" {"keepEnv" 100}} @acknowledged-checks)))))
 
 (def build-check-name-env-vecs #'chkr/build-check-name-env-vecs)
 (deftest building-parameters-for-futures
