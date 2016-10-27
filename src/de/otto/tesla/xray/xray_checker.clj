@@ -115,8 +115,9 @@
       (update-results! self xray-check current-env (deref f)))
     (reset! last-check (utils/current-time))))
 
-(defn acknowledge-check! [acknowledged-checks check-name duration]
-  (swap! acknowledged-checks assoc check-name (+ (Integer/parseInt duration) (utils/current-time)))
+(defn acknowledge-check! [acknowledged-checks check-name duration-in-min]
+  (let [duration-in-ms (* 60 1000 (Long/parseLong duration-in-min))]
+    (swap! acknowledged-checks assoc check-name (+ duration-in-ms (utils/current-time))))
   (print @acknowledged-checks))
 
 (defn remove-acknowledgement! [acknowledged-checks check-name]
@@ -150,10 +151,10 @@
            :headers {"Content-Type" "text/plain"}
            :body    (stringify-acknowledged-checks acknowledged-checks)})
 
-        (comp/POST (str endpoint "/acknowledged-checks") [check-name duration]
+        (comp/POST (str endpoint "/acknowledged-checks") [check-name minutes]
           {:status  200
            :headers {"Content-Type" "text/plain"}
-           :body    (acknowledge-check! acknowledged-checks check-name duration)})
+           :body    (acknowledge-check! acknowledged-checks check-name minutes)})
 
         (comp/DELETE (str endpoint "/acknowledged-checks/:check-name") [check-name]
           {:status  200

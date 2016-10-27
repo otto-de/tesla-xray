@@ -247,8 +247,13 @@
   (testing "should put a check object with correct expire time in the acknowledged-checks atom"
     (with-redefs [utils/current-time (constantly 10)]
       (let [acknowledged-checks (atom {})]
-        (chkr/acknowledge-check! acknowledged-checks "tenMsLongAcknowledgement" "10")
-        (is (= ["tenMsLongAcknowledgement" 20] (first @acknowledged-checks))))))
+        (chkr/acknowledge-check! acknowledged-checks "oneHourAcknowledgement" "60")
+        (is (= ["oneHourAcknowledgement" (+ 10 (* 60 60 1000))] (first @acknowledged-checks))))))
+  (testing "should work for long expiry times"
+    (with-redefs [utils/current-time (constantly 10)]
+      (let [acknowledged-checks (atom {})]
+        (chkr/acknowledge-check! acknowledged-checks "oneYearAcknowledgement" (str (* 60 24 365)))
+        (is (= ["oneYearAcknowledgement" (+ 10 (* 365 24 60 60 1000))] (first @acknowledged-checks))))))
 
   (testing "should remove a check object regardless of it's expire time"
     (let [acknowledged-checks (atom {"checkToBeRemoved" 1000})]
