@@ -126,10 +126,9 @@
                                                          (chk/->XRayCheckResult :ok "dummy-message" 0 10)]}}}
                  @(:check-results xray-checker)))
           (finally
-            (comp/stop started)))))))
+            (comp/stop started))))))
 
-(deftest acknowledged-checks
-  (testing "should apply the acknowledged state to acknowledged checks"
+  (testing "should apply the correct state to checks that are in the acknowledged atom"
     (let [started (comp/start (test-system {:test-check-frequency    "100"
                                             :test-check-environments "dev"
                                             :test-max-check-history  "2"}))
@@ -160,7 +159,6 @@
                  @(:check-results xray-checker))))
         (finally
           (comp/stop started))))))
-
 
 (deftest error-handling
   (testing "should store warning-result for check without a propper return message"
@@ -244,6 +242,30 @@
                  @(:check-results xray-checker)))
           (finally
             (comp/stop started)))))))
+
+(deftest acknowledge-check-endpoints
+  (testing "should put a check object with correct expire time in the acknowledged-checks atom"
+    (with-redefs [utils/current-time (constantly 10)]
+      (let [acknowledged-checks (atom {})]
+        (chkr/acknowledge-check! acknowledged-checks "tenMsLongAcknowledgement" "10")
+        (is (= ["tenMsLongAcknowledgement" 20] (first @acknowledged-checks))))))
+
+  (testing "should remove a check object regardless of it's expire time"
+    (let [acknowledged-checks (atom {"checkToBeRemoved" 1000})]
+      (chkr/remove-acknowledgement! acknowledged-checks "checkToBeRemoved")
+      (is (= {} @acknowledged-checks))))
+
+  (testing "should stringify an empty acknowledgement map"
+    (let [acknowledged-checks (atom {})]
+      (is (= "{}" (chkr/stringify-acknowledged-checks acknowledged-checks)))))
+
+  (testing "should stringify acknowledgement map with one check"
+    (let [acknowledged-checks (atom {"firstCheck" 100})]
+      (is (= "{\"firstCheck\":100}" (chkr/stringify-acknowledged-checks acknowledged-checks)))))
+
+  (testing "should stringify acknowledgement map with two checks"
+    (let [acknowledged-checks (atom {"firstCheck" 100 "secondCheck" 500})]
+      (is (= "{\"firstCheck\":100,\"secondCheck\":500}" (chkr/stringify-acknowledged-checks acknowledged-checks))))))
 
 (def build-check-name-env-vecs #'chkr/build-check-name-env-vecs)
 (deftest building-parameters-for-futures

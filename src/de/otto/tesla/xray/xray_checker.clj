@@ -8,9 +8,11 @@
             [de.otto.tesla.xray.ui.overall-status :as oas]
             [de.otto.tesla.xray.conf.reading-properties :as props]
             [compojure.route :as croute]
+            [compojure.handler :as chandler]
             [de.otto.tesla.xray.util.utils :as utils]
             [de.otto.tesla.stateful.handler :as hndl]
-            [de.otto.tesla.xray.check :as chk]))
+            [de.otto.tesla.xray.check :as chk]
+            [clojure.data.json :as json]))
 
 (defprotocol XRayCheckerProtocol
   (set-alerting-function [self alerting-fn])
@@ -113,24 +115,52 @@
       (update-results! self xray-check current-env (deref f)))
     (reset! last-check (utils/current-time))))
 
-(defn- xray-routes [{:keys [check-results last-check xray-config]}]
+(defn acknowledge-check! [acknowledged-checks check-name duration]
+  (swap! acknowledged-checks assoc check-name (+ (Integer/parseInt duration) (utils/current-time)))
+  (print @acknowledged-checks))
+
+(defn remove-acknowledgement! [acknowledged-checks check-name]
+  (swap! acknowledged-checks dissoc check-name))
+
+(defn stringify-acknowledged-checks [acknowledged-checks]
+  (json/write-str @acknowledged-checks))
+
+(defn- xray-routes [{:keys [check-results last-check xray-config acknowledged-checks]}]
   (let [{:keys [endpoint]} xray-config]
-    (comp/routes
-      (croute/resources "/")
-      (comp/GET endpoint []
-        {:status  200
-         :headers {"Content-Type" "text/html"}
-         :body    (oas/render-overall-status check-results last-check xray-config)})
+    (chandler/api
+      (comp/routes
+        (croute/resources "/")
+        (comp/GET endpoint []
+          {:status  200
+           :headers {"Content-Type" "text/html"}
+           :body    (oas/render-overall-status check-results last-check xray-config)})
 
-      (comp/GET (str endpoint "/overview") []
-        {:status  200
-         :headers {"Content-Type" "text/html"}
-         :body    (eo/render-env-overview check-results last-check xray-config)})
+        (comp/GET (str endpoint "/overview") []
+          {:status  200
+           :headers {"Content-Type" "text/html"}
+           :body    (eo/render-env-overview check-results last-check xray-config)})
 
-      (comp/GET (str endpoint "/detail/:check-name/:environment") [check-name environment]
-        {:status  200
-         :headers {"Content-Type" "text/html"}
-         :body    (dp/render-detail-page check-results xray-config check-name environment)}))))
+        (comp/GET (str endpoint "/detail/:check-name/:environment") [check-name environment]
+          {:status  200
+           :headers {"Content-Type" "text/html"}
+           :body    (dp/render-detail-page check-results xray-config check-name environment)})
+
+        (comp/GET (str endpoint "/acknowledged-checks") []
+          {:status  200
+           :headers {"Content-Type" "text/plain"}
+           :body    (stringify-acknowledged-checks acknowledged-checks)})
+
+        (comp/POST (str endpoint "/acknowledged-checks") [check-name duration]
+          {:status  200
+           :headers {"Content-Type" "text/plain"}
+           :body    (acknowledge-check! acknowledged-checks check-name duration)})
+
+        (comp/DELETE (str endpoint "/acknowledged-checks/:check-name") [check-name]
+          {:status  200
+           :headers {"Content-Type" "text/plain"}
+           :body    (remove-acknowledgement! acknowledged-checks check-name)})
+        ))))
+
 
 (defn default-strategy [results]
   (:status (first results)))
