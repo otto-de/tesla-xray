@@ -26,12 +26,16 @@ body {
 .acknowledged {
     background-color: #49A8FF;
     font-size: 20px;
-    color: darkgray;
+    color: #2c3e50;
     background-color: rgba(73, 168, 255, 1);
 }
 
 .env-header.error {
     background-color: rgba(255, 0, 0, 1);
+}
+
+.single-check-results .env-header.error:hover {
+    background-color: #49A8FF;
 }
 
 .env-header.ok {
@@ -83,6 +87,9 @@ div.overall-warning {
 }
 div.overall-error {
     border: solid red 1px;
+}
+div.overall-acknowledged {
+    border: solid #49A8FF 1px;
 }
 
 div.env-results-container {

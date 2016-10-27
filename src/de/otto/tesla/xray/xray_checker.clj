@@ -172,11 +172,12 @@
     (log/info "-> starting XrayChecker")
     (let [executor (at/mk-pool)
           new-self (assoc self
-                     :xray-config {:refresh-frequency   (props/parse-refresh-frequency config which-checker)
-                                   :nr-checks-displayed (props/parse-nr-checks-displayed config which-checker)
-                                   :max-check-history   (props/parse-max-check-history config which-checker)
-                                   :endpoint            (props/parse-endpoint config which-checker)
-                                   :environments        (props/parse-check-environments config which-checker)}
+                     :xray-config {:refresh-frequency             (props/parse-refresh-frequency config which-checker)
+                                   :nr-checks-displayed           (props/parse-nr-checks-displayed config which-checker)
+                                   :max-check-history             (props/parse-max-check-history config which-checker)
+                                   :endpoint                      (props/parse-endpoint config which-checker)
+                                   :environments                  (props/parse-check-environments config which-checker)
+                                   :acknowledge-minutes-to-expire (props/parse-minutes-to-expire config which-checker)}
                      :executor executor
                      :alerting-fn (atom nil)
                      :last-check (atom nil)
