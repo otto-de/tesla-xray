@@ -1,6 +1,7 @@
 (ns de.otto.tesla.xray.ui.overall-status
   (:require [hiccup.page :as hc]
-            [de.otto.tesla.xray.util.utils :as utils]))
+            [de.otto.tesla.xray.util.utils :as utils]
+            [clojure.java.io :as io]))
 
 (defn- flat-results [check-results]
   (mapcat vals (vals @check-results)))
@@ -32,7 +33,9 @@
      [:meta {:charset "utf-8"}]
      [:meta {:http-equiv "refresh" :content (/ (:refresh-frequency xray-config) 1000)}]
      [:title "XRayCheck Results"]
-     (hc/include-css "/stylesheets/base.css" "/stylesheets/overall-status.css")]
+     (hc/include-css "/stylesheets/base.css" "/stylesheets/overall-status.css")
+     (when (io/resource "public/stylesheets/custom.css")
+       (hc/include-css "/stylesheets/custom.css"))]
     [:body
      [:header
       [:h1 "XRayCheck Overall-Status"]

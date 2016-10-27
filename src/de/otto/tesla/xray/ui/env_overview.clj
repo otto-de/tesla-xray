@@ -2,7 +2,8 @@
   (:require [hiccup.page :as hc]
             [ring.util.codec :as co]
             [de.otto.tesla.xray.ui.overall-status :as os]
-            [de.otto.tesla.xray.util.utils :as utils]))
+            [de.otto.tesla.xray.util.utils :as utils]
+            [clojure.java.io :as io]))
 
 (defn- single-check-result-as-html [{:keys [status message time-taken stop-time]}]
   (let [stop-time-str (or (utils/readable-timestamp stop-time) "")
@@ -49,7 +50,9 @@
      [:meta {:charset "utf-8"}]
      [:meta {:http-equiv "refresh" :content (/ refresh-frequency  1000) }]
      [:title "XRayCheck Results"]
-     (hc/include-css "/stylesheets/base.css")]
+     (hc/include-css "/stylesheets/base.css")
+     (when (io/resource "public/stylesheets/custom.css")
+       (hc/include-css "/stylesheets/custom.css"))]
     [:body
      [:header
       [:h1 [:a {:class "index-link" :href endpoint} "<-"] "XRayCheck Results"]

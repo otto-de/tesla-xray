@@ -1,6 +1,7 @@
 (ns de.otto.tesla.xray.ui.detail-page
   (:require [hiccup.page :as hc]
-            [de.otto.tesla.xray.ui.env-overview :as eo]))
+            [de.otto.tesla.xray.ui.env-overview :as eo]
+            [clojure.java.io :as io]))
 
 (defn render-check-results [check-results {:keys [max-check-history endpoint]} check-name current-env]
   (let [show-links false]
@@ -15,7 +16,9 @@
      [:meta {:charset "utf-8"}]
      [:meta {:http-equiv "refresh" :content (/ refresh-frequency  1000) }]
      [:title "XRayCheck Results"]
-     (hc/include-css "/stylesheets/base.css")]
+     (hc/include-css "/stylesheets/base.css")
+     (when (io/resource "public/stylesheets/custom.css")
+       (hc/include-css "/stylesheets/custom.css"))]
     [:body
      [:header
        [:h1 [:a {:class "index-link" :href (str endpoint"/overview")}"<-"] check-name]]
