@@ -117,9 +117,10 @@
       (update-results! self xray-check current-env (deref f)))
     (reset! last-check (utils/current-time))))
 
-(defn acknowledge-check! [acknowledged-checks check-name environment duration-in-min]
+(defn acknowledge-check! [check-results acknowledged-checks check-name environment duration-in-min]
   (let [duration-in-ms (* 60 1000 (Long/parseLong duration-in-min))]
-    (swap! acknowledged-checks assoc-in [check-name environment] (+ duration-in-ms (utils/current-time)))))
+    (swap! acknowledged-checks assoc-in [check-name environment] (+ duration-in-ms (utils/current-time)))
+    (swap! check-results assoc-in [check-name environment :overall-status] :acknowledged)))
 
 (defn remove-acknowledgement! [acknowledged-checks check-name environment]
   (swap! acknowledged-checks update check-name dissoc environment)
@@ -136,12 +137,12 @@
         (comp/GET endpoint []
           {:status  200
            :headers {"Content-Type" "text/html"}
-           :body    (oas/render-overall-status check-results last-check xray-config)}
+           :body    (oas/render-overall-status check-results last-check xray-config)})
 
-          (comp/GET (str endpoint "/overview") []
-            {:status  200
-             :headers {"Content-Type" "text/html"}
-             :body    (eo/render-env-overview check-results last-check xray-config)}))
+        (comp/GET (str endpoint "/overview") []
+          {:status  200
+           :headers {"Content-Type" "text/html"}
+           :body    (eo/render-env-overview check-results last-check xray-config)})
 
         (comp/GET (str endpoint "/detail/:check-name/:environment") [check-name environment]
           {:status  200
@@ -154,16 +155,16 @@
            :body    (stringify-acknowledged-checks acknowledged-checks)})
 
         (comp/POST (str endpoint "/acknowledged-checks") [check-name environment minutes]
-          (acknowledge-check! acknowledged-checks check-name environment minutes)
+          (acknowledge-check! check-results acknowledged-checks check-name environment minutes)
           {:status  200
            :headers {"Content-Type" "text/plain"}
-           :body ""})
+           :body    ""})
 
         (comp/DELETE (str endpoint "/acknowledged-checks/:check-name/:environment") [check-name environment]
           (remove-acknowledgement! acknowledged-checks check-name environment)
           {:status  200
            :headers {"Content-Type" "text/plain"}
-           :body ""})
+           :body    ""})
         ))))
 
 
