@@ -254,20 +254,20 @@
   (testing "should put a check object with correct expire time in the acknowledged-checks atom"
     (with-redefs [utils/current-time (constantly 10)]
       (let [acknowledged-checks (atom {})]
-        (chkr/acknowledge-check! (atom {}) acknowledged-checks "oneHourAcknowledgement" "test-env" "60")
+        (chkr/acknowledge-check! (atom {}) acknowledged-checks "oneHourAcknowledgement" "test-env" "1")
         (is (= ["oneHourAcknowledgement" {"test-env" (+ 10 (* 60 60 1000))}] (first @acknowledged-checks))))))
 
   (testing "should keep other environments unchanged when adding ack for same check in different env"
     (with-redefs [utils/current-time (constantly 10)]
       (let [acknowledged-checks (atom {"oneHourAcknowledgement" {"otherEnv" 20}})]
-        (chkr/acknowledge-check! (atom {}) acknowledged-checks "oneHourAcknowledgement" "test-env" "60")
+        (chkr/acknowledge-check! (atom {}) acknowledged-checks "oneHourAcknowledgement" "test-env" "1")
         (is (= ["oneHourAcknowledgement" {"test-env" (+ 10 (* 60 60 1000))
                                           "otherEnv" 20}] (first @acknowledged-checks))))))
 
   (testing "should immediatly change the overall status to acknowledged"
     (let [acknowledged-checks (atom {})
           check-results (atom {"testCheck" {"test-env" {:overall-status :error}}})]
-      (chkr/acknowledge-check! check-results acknowledged-checks "testCheck" "test-env" "60")
+      (chkr/acknowledge-check! check-results acknowledged-checks "testCheck" "test-env" "1")
       (is (= {"testCheck" {"test-env" {:overall-status :acknowledged}}}
              @check-results))))
 

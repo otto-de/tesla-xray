@@ -1,5 +1,5 @@
-function onAcknowledgementClick(xrayUrl, check, environment, minutes) {
-    var params = "check-name="+check+"&environment="+environment+"&minutes="+minutes;
+function onAcknowledgementClick(xrayUrl, check, environment, hours) {
+    var params = "check-name="+check+"&environment="+environment+"&hours="+hours;
 
     var http = new XMLHttpRequest();
     http.open('POST', xrayUrl+'/acknowledged-checks');

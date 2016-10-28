@@ -117,8 +117,8 @@
       (update-results! self xray-check current-env (deref f)))
     (reset! last-check (utils/current-time))))
 
-(defn acknowledge-check! [check-results acknowledged-checks check-name environment duration-in-min]
-  (let [duration-in-ms (* 60 1000 (Long/parseLong duration-in-min))]
+(defn acknowledge-check! [check-results acknowledged-checks check-name environment duration-in-hours]
+  (let [duration-in-ms (* 60 60 1000 (Long/parseLong duration-in-hours))]
     (swap! acknowledged-checks assoc-in [check-name environment] (+ duration-in-ms (utils/current-time)))
     (swap! check-results assoc-in [check-name environment :overall-status] :acknowledged)))
 
@@ -154,8 +154,8 @@
            :headers {"Content-Type" "application/json"}
            :body    (stringify-acknowledged-checks acknowledged-checks)})
 
-        (comp/POST (str endpoint "/acknowledged-checks") [check-name environment minutes]
-          (acknowledge-check! check-results acknowledged-checks check-name environment minutes)
+        (comp/POST (str endpoint "/acknowledged-checks") [check-name environment hours]
+          (acknowledge-check! check-results acknowledged-checks check-name environment hours)
           {:status  200
            :headers {"Content-Type" "text/plain"}
            :body    ""})
@@ -167,7 +167,6 @@
            :body    ""})
         ))))
 
-
 (defn default-strategy [results]
   (:status (first results)))
 
@@ -177,12 +176,12 @@
     (log/info "-> starting XrayChecker")
     (let [executor (at/mk-pool)
           new-self (assoc self
-                     :xray-config {:refresh-frequency             (props/parse-refresh-frequency config which-checker)
-                                   :nr-checks-displayed           (props/parse-nr-checks-displayed config which-checker)
-                                   :max-check-history             (props/parse-max-check-history config which-checker)
-                                   :endpoint                      (props/parse-endpoint config which-checker)
-                                   :environments                  (props/parse-check-environments config which-checker)
-                                   :acknowledge-minutes-to-expire (props/parse-minutes-to-expire config which-checker)}
+                     :xray-config {:refresh-frequency           (props/parse-refresh-frequency config which-checker)
+                                   :nr-checks-displayed         (props/parse-nr-checks-displayed config which-checker)
+                                   :max-check-history           (props/parse-max-check-history config which-checker)
+                                   :endpoint                    (props/parse-endpoint config which-checker)
+                                   :environments                (props/parse-check-environments config which-checker)
+                                   :acknowledge-hours-to-expire (props/parse-hours-to-expire config which-checker)}
                      :executor executor
                      :alerting-fn (atom nil)
                      :last-check (atom nil)
