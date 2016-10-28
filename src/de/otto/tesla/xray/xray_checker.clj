@@ -54,10 +54,12 @@
 (defn- update-results! [{:keys [alerting-fn check-results xray-config acknowledged-checks]} {:keys [check-name strategy]} current-env result]
   (let [{:keys [max-check-history]} xray-config
         {:keys [results overall-status]} (get-in @check-results [check-name current-env])
-        new-results (append-result results result max-check-history)
-        new-overall-status (if (contains? (get @acknowledged-checks check-name) current-env)
-                             :acknowledged
-                             (strategy new-results))]
+        acknowledged? (contains? (get @acknowledged-checks check-name) current-env)
+        enriched-result (if acknowledged?
+                          (assoc result :status :acknowledged :message (str (:message result) "; Acknowledged"))
+                          result)
+        new-results (append-result results enriched-result max-check-history)
+        new-overall-status (if acknowledged? :acknowledged (strategy new-results))]
     (swap! check-results assoc-in [check-name current-env :results] new-results)
     (swap! check-results assoc-in [check-name current-env :overall-status] new-overall-status)
     (when (or

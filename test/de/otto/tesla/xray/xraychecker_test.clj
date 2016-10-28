@@ -151,7 +151,7 @@
           (swap! (:acknowledged-checks xray-checker) assoc-in ["ErrorCheck" "dev"] 15)
           (start-the-xraychecks xray-checker)
           (is (= {"ErrorCheck" {"dev" {:overall-status :acknowledged
-                                       :results        [(chk/->XRayCheckResult :error "error-message" 0 10)
+                                       :results        [(chk/->XRayCheckResult :acknowledged "error-message; Acknowledged" 0 10)
                                                         (chk/->XRayCheckResult :error "error-message" 0 10)]}}}
                  @(:check-results xray-checker))))
 
@@ -162,7 +162,7 @@
                  @(:acknowledged-checks xray-checker)))
           (is (= {"ErrorCheck" {"dev" {:overall-status :error
                                        :results        [(chk/->XRayCheckResult :error "error-message" 0 20)
-                                                        (chk/->XRayCheckResult :error "error-message" 0 10)]}}}
+                                                        (chk/->XRayCheckResult :acknowledged "error-message; Acknowledged" 0 10)]}}}
                  @(:check-results xray-checker))))
         (finally
           (comp/stop started))))))

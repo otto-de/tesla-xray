@@ -35,7 +35,7 @@ body {
 }
 
 .single-check-results .env-header.error:hover {
-    background-color: #49A8FF;
+    background-color: #64CFFF;
 }
 
 .env-header.ok {
@@ -44,6 +44,10 @@ body {
 
 .env-header.warning {
     background-color: rgba(255, 249, 34, 1);
+}
+
+.env-header.acknowledged {
+    background-color: rgba(100, 207, 255, 1);
 }
 
 .none {
