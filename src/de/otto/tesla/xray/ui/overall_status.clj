@@ -13,13 +13,12 @@
 
 (defn calc-overall-status [check-results last-check refresh-frequency]
   (let [all-status (map :overall-status (flat-results check-results))]
-    (if (no-check-started-for-too-long-time last-check refresh-frequency)
-      :defunct
-      (if (some #(= :error %) all-status)
-        :error
-        (if (some #(= :warning %) all-status)
-          :warning
-          :ok)))))
+    (cond
+      (no-check-started-for-too-long-time last-check refresh-frequency) :defunct
+      (some #(= :error %) all-status) :error
+      (some #(= :warning %) all-status) :warning
+      (some #(= :acknowledged %) all-status) :acknowledged
+      :default :ok)))
 
 (defn render-overall-status-container [check-results last-check {:keys [refresh-frequency endpoint]}]
   (let [the-overall-status (name (calc-overall-status check-results last-check refresh-frequency))]

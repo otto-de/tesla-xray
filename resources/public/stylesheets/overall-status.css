@@ -1,7 +1,7 @@
 div.overall-status-page {
     width: 100%;
     height: 100%;
-    font-size: 500px;
+    font-size: 30vw;
     text-decoration: none;
     color: black;
     text-align: center;
@@ -22,5 +22,11 @@ a {
 }
 
 .overall-status-page.warning {
+    font-size: 23vw;
     background-color: rgba(255, 249, 34, 1);
+}
+
+.overall-status-page.acknowledged {
+    font-size: 14vw;
+    background-color: rgba(73, 168, 255, 1);
 }
