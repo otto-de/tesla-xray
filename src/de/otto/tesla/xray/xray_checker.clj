@@ -136,12 +136,12 @@
         (comp/GET endpoint []
           {:status  200
            :headers {"Content-Type" "text/html"}
-           :body    (oas/render-overall-status check-results last-check xray-config)})
+           :body    (oas/render-overall-status check-results last-check xray-config)}
 
-        (comp/GET (str endpoint "/overview") []
-          {:status  200
-           :headers {"Content-Type" "text/html"}
-           :body    (eo/render-env-overview check-results last-check xray-config)})
+          (comp/GET (str endpoint "/overview") []
+            {:status  200
+             :headers {"Content-Type" "text/html"}
+             :body    (eo/render-env-overview check-results last-check xray-config)}))
 
         (comp/GET (str endpoint "/detail/:check-name/:environment") [check-name environment]
           {:status  200
@@ -150,18 +150,20 @@
 
         (comp/GET (str endpoint "/acknowledged-checks") []
           {:status  200
-           :headers {"Content-Type" "text/plain"}
+           :headers {"Content-Type" "application/json"}
            :body    (stringify-acknowledged-checks acknowledged-checks)})
 
         (comp/POST (str endpoint "/acknowledged-checks") [check-name environment minutes]
+          (acknowledge-check! acknowledged-checks check-name environment minutes)
           {:status  200
            :headers {"Content-Type" "text/plain"}
-           :body    (acknowledge-check! acknowledged-checks check-name environment minutes)})
+           :body ""})
 
         (comp/DELETE (str endpoint "/acknowledged-checks/:check-name") [check-name environment]
+          (remove-acknowledgement! acknowledged-checks check-name environment)
           {:status  200
            :headers {"Content-Type" "text/plain"}
-           :body    (remove-acknowledgement! acknowledged-checks check-name environment)})
+           :body ""})
         ))))
 
 
