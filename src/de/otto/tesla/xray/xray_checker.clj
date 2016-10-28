@@ -159,7 +159,7 @@
            :headers {"Content-Type" "text/plain"}
            :body ""})
 
-        (comp/DELETE (str endpoint "/acknowledged-checks/:check-name") [check-name environment]
+        (comp/DELETE (str endpoint "/acknowledged-checks/:check-name/:environment") [check-name environment]
           (remove-acknowledgement! acknowledged-checks check-name environment)
           {:status  200
            :headers {"Content-Type" "text/plain"}
