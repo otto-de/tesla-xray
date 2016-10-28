@@ -13,8 +13,14 @@
             [de.otto.tesla.xray.util.utils :as utils]
             [de.otto.tesla.stateful.handler :as hndl]
             [de.otto.tesla.xray.check :as chk]
-            [clojure.data.json :as json])
-  (:import (org.joda.time.format DateTimeFormat)
+            [clojure.data.json :as json]
+            [clj-time.format :as tformat]
+            [de.otto.tesla.xray.util.utils :as utils]
+            [de.otto.tesla.stateful.handler :as hndl]
+            [de.otto.tesla.xray.check :as chk]
+            [clojure.data.xml :as xml])
+  (:import (de.otto.tesla.xray.check XRayCheckResult)
+           (org.joda.time.format DateTimeFormat)
            (org.joda.time DateTime)))
 
 (defprotocol XRayCheckerProtocol
@@ -148,6 +154,20 @@
                         value))]
     (json/write-str @acknowledged-checks :value-fn format-time)))
 
+(defn render-results-xml [check-results]
+  (for [[check-name env-to-data] @check-results]
+    (for [[env {results :results overall-status :overall-status}] env-to-data]
+      (let [^XRayCheckResult result (first results)
+            date-time-string (tformat/unparse (tformat/formatters :date-time) (DateTime. (:stop-time result)))]
+        (xml/element :Project {:name            (str check-name " on " env)
+                               :last-build-time date-time-string
+                               :lastBuildStatus (str overall-status)} [])))))
+
+(defn render-xml [check-results]
+  (->> (render-results-xml check-results)
+       (xml/element :Projects {})
+       (xml/emit-str)))
+
 (defn- xray-routes [{:keys [check-results last-check xray-config acknowledged-checks]}]
   (let [{:keys [endpoint]} xray-config]
     (chandler/api
@@ -184,6 +204,10 @@
           {:status  204
            :headers {"Content-Type" "text/plain"}
            :body    ""})
+        (comp/GET "/cc.xml" []
+          {:status  200
+           :headers {"Content-Type" "text/xml"}
+           :body    (render-xml check-results)})
         ))))
 
 (defn default-strategy [results]

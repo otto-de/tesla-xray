@@ -283,6 +283,13 @@
             (is (= {"Content-Type" "text/html"} (:headers response)))
             (is (= true (.contains (:body response) "dev")))
             (is (= true (.contains (:body response) "2015.11.10 11:40:24 tt:0 dummy-message")))))
+        (testing "should emit cc xml for monitors"
+          (let [response (handlers (mock/request :get "/cc.xml"))]
+            (is (= 200 (:status response)))
+            (is (= {"Content-Type" "text/xml"} (:headers response)))
+            (is (= "<?xml version=\"1.0\" encoding=\"UTF-8\"?><Projects><Project name=\"DummyCheck on dev\" last-build-time=\"2015-11-10T10:40:24.778Z\" lastBuildStatus=\":ok\"></Project></Projects>"
+                   (:body response)))))
+
         (finally
           (comp/stop started))))))
 
