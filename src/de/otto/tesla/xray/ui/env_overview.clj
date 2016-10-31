@@ -18,19 +18,18 @@
       the-html)))
 
 (defn render-results-for-env
-  ([total-cols nr-checks-displayed checkname endpoint show-links? env-result-map-pair]
-   (render-results-for-env total-cols nr-checks-displayed checkname endpoint show-links? env-result-map-pair ""))
-  ([total-cols nr-checks-displayed checkname endpoint show-links? [env {:keys [results overall-status]}] onClick]
-                              (let [width (int (/ 97 total-cols))
-                                    padding (int (/ 3 total-cols))
-                                    should-show-links? (and
-                                                         (not (= overall-status :none))
-                                                         show-links?)]
-                                (-> [:div {:class "env-results-container" :style (str "width: " width "%; padding-left: " padding "%;")}
-                                     [:div {:class (str "overall-" (name overall-status))}
-                                      [:div {:class (str "env-header " (name overall-status)) :onClick onClick} env]
-                                      (map single-check-result-as-html (take nr-checks-displayed results))]]
-                                    (wrapped-with-links-to-detail-page should-show-links? endpoint checkname env)))))
+  [total-cols nr-checks-displayed checkname endpoint show-links? [env {:keys [results overall-status]}] & {:keys [on-click]
+                                                                                                           :or   {on-click ""}}]
+  (let [width (int (/ 97 total-cols))
+        padding (int (/ 3 total-cols))
+        should-show-links? (and
+                             (not (= overall-status :none))
+                             show-links?)]
+    (-> [:div {:class "env-results-container" :style (str "width: " width "%; padding-left: " padding "%;")}
+         [:div {:class (str "overall-" (name overall-status))}
+          [:div {:class (str "env-header " (name overall-status)) :onClick on-click} env]
+          (map single-check-result-as-html (take nr-checks-displayed results))]]
+        (wrapped-with-links-to-detail-page should-show-links? endpoint checkname env))))
 
 (defn- sort-results-by-env [results-for-env environments]
   (sort-by (fn [[env _]] (.indexOf environments env)) results-for-env))
@@ -51,7 +50,7 @@
   (hc/html5
     [:head
      [:meta {:charset "utf-8"}]
-     [:meta {:http-equiv "refresh" :content (/ refresh-frequency  1000) }]
+     [:meta {:http-equiv "refresh" :content (/ refresh-frequency 1000)}]
      [:title "XRayCheck Results"]
      (hc/include-css "/stylesheets/base.css")
      (when (io/resource "public/stylesheets/custom.css")
