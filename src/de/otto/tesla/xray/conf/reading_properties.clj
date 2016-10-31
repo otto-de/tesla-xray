@@ -18,3 +18,5 @@
 (defn parse-nr-checks-displayed [config which-checker]
   (Integer/parseInt (get-in config [:config (keyword (str which-checker "-nr-checks-displayed"))] "5")))
 
+(defn parse-hours-to-expire [config which-checker]
+  (get-in config [:config (keyword (str which-checker "-acknowledge-hours-to-expire"))] 24))

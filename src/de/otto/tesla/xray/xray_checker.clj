@@ -8,9 +8,11 @@
             [de.otto.tesla.xray.ui.overall-status :as oas]
             [de.otto.tesla.xray.conf.reading-properties :as props]
             [compojure.route :as croute]
+            [compojure.handler :as chandler]
             [de.otto.tesla.xray.util.utils :as utils]
             [de.otto.tesla.stateful.handler :as hndl]
-            [de.otto.tesla.xray.check :as chk]))
+            [de.otto.tesla.xray.check :as chk]
+            [clojure.data.json :as json]))
 
 (defprotocol XRayCheckerProtocol
   (set-alerting-function [self alerting-fn])
@@ -49,11 +51,15 @@
     (nil? overall-status)
     (not= :ok new-overall-status)))
 
-(defn- update-results! [{:keys [alerting-fn check-results xray-config]} {:keys [check-name strategy]} current-env result]
+(defn- update-results! [{:keys [alerting-fn check-results xray-config acknowledged-checks]} {:keys [check-name strategy]} current-env result]
   (let [{:keys [max-check-history]} xray-config
         {:keys [results overall-status]} (get-in @check-results [check-name current-env])
-        new-results (append-result results result max-check-history)
-        new-overall-status (strategy new-results)]
+        acknowledged? (contains? (get @acknowledged-checks check-name) current-env)
+        enriched-result (if acknowledged?
+                          (assoc result :status :acknowledged :message (str (:message result) "; Acknowledged"))
+                          result)
+        new-results (append-result results enriched-result max-check-history)
+        new-overall-status (if acknowledged? :acknowledged (strategy new-results))]
     (swap! check-results assoc-in [check-name current-env :results] new-results)
     (swap! check-results assoc-in [check-name current-env :overall-status] new-overall-status)
     (when (or
@@ -95,31 +101,73 @@
         map-entries (map (partial entry-with-started-future timeout) checks+env)]
     (into {} map-entries)))
 
+(defn clear-outdated-acknowledgements! [{:keys [acknowledged-checks]}]
+  (swap! acknowledged-checks (fn [acknowledged-checks] (->>
+                                                         acknowledged-checks
+                                                         (map (fn [[check-name env-to-time-map]]
+                                                                [check-name
+                                                                 (into {} (filter #(> (second %) (utils/current-time)) env-to-time-map))]))
+                                                         (filter #(not-empty (second %)))
+                                                         (into {})
+                                                         ))))
+
 (defn- start-the-xraychecks [{:keys [last-check registered-checks xray-config] :as self}]
+  (clear-outdated-acknowledgements! self)
   (let [checks+env (build-check-name-env-vecs (:environments xray-config) @registered-checks)
         checks+env-to-futures (build-future-map xray-config checks+env)]
     (doseq [[[^RegisteredXRayCheck xray-check current-env] f] checks+env-to-futures]
       (update-results! self xray-check current-env (deref f)))
     (reset! last-check (utils/current-time))))
 
-(defn- xray-routes [{:keys [check-results last-check xray-config]}]
+(defn acknowledge-check! [check-results acknowledged-checks check-name environment duration-in-hours]
+  (let [duration-in-ms (* 60 60 1000 (Long/parseLong duration-in-hours))]
+    (swap! acknowledged-checks assoc-in [check-name environment] (+ duration-in-ms (utils/current-time)))
+    (swap! check-results assoc-in [check-name environment :overall-status] :acknowledged)))
+
+(defn remove-acknowledgement! [acknowledged-checks check-name environment]
+  (swap! acknowledged-checks update check-name dissoc environment)
+  (swap! acknowledged-checks (fn [x] (into {} (filter #(not-empty (second %)) x)))))
+
+(defn stringify-acknowledged-checks [acknowledged-checks]
+  (json/write-str @acknowledged-checks))
+
+(defn- xray-routes [{:keys [check-results last-check xray-config acknowledged-checks]}]
   (let [{:keys [endpoint]} xray-config]
-    (comp/routes
-      (croute/resources "/")
-      (comp/GET endpoint []
-        {:status  200
-         :headers {"Content-Type" "text/html"}
-         :body    (oas/render-overall-status check-results last-check xray-config)})
+    (chandler/api
+      (comp/routes
+        (croute/resources "/")
+        (comp/GET endpoint []
+          {:status  200
+           :headers {"Content-Type" "text/html"}
+           :body    (oas/render-overall-status check-results last-check xray-config)})
 
-      (comp/GET (str endpoint "/overview") []
-        {:status  200
-         :headers {"Content-Type" "text/html"}
-         :body    (eo/render-env-overview check-results last-check xray-config)})
+        (comp/GET (str endpoint "/overview") []
+          {:status  200
+           :headers {"Content-Type" "text/html"}
+           :body    (eo/render-env-overview check-results last-check xray-config)})
 
-      (comp/GET (str endpoint "/detail/:check-name/:environment") [check-name environment]
-        {:status  200
-         :headers {"Content-Type" "text/html"}
-         :body    (dp/render-detail-page check-results xray-config check-name environment)}))))
+        (comp/GET (str endpoint "/detail/:check-name/:environment") [check-name environment]
+          {:status  200
+           :headers {"Content-Type" "text/html"}
+           :body    (dp/render-detail-page check-results xray-config check-name environment)})
+
+        (comp/GET (str endpoint "/acknowledged-checks") []
+          {:status  200
+           :headers {"Content-Type" "application/json"}
+           :body    (stringify-acknowledged-checks acknowledged-checks)})
+
+        (comp/POST (str endpoint "/acknowledged-checks") [check-name environment hours]
+          (acknowledge-check! check-results acknowledged-checks check-name environment hours)
+          {:status  200
+           :headers {"Content-Type" "text/plain"}
+           :body    ""})
+
+        (comp/DELETE (str endpoint "/acknowledged-checks/:check-name/:environment") [check-name environment]
+          (remove-acknowledgement! acknowledged-checks check-name environment)
+          {:status  200
+           :headers {"Content-Type" "text/plain"}
+           :body    ""})
+        ))))
 
 (defn default-strategy [results]
   (:status (first results)))
@@ -130,16 +178,18 @@
     (log/info "-> starting XrayChecker")
     (let [executor (at/mk-pool)
           new-self (assoc self
-                     :xray-config {:refresh-frequency   (props/parse-refresh-frequency config which-checker)
-                                   :nr-checks-displayed (props/parse-nr-checks-displayed config which-checker)
-                                   :max-check-history   (props/parse-max-check-history config which-checker)
-                                   :endpoint            (props/parse-endpoint config which-checker)
-                                   :environments        (props/parse-check-environments config which-checker)}
+                     :xray-config {:refresh-frequency           (props/parse-refresh-frequency config which-checker)
+                                   :nr-checks-displayed         (props/parse-nr-checks-displayed config which-checker)
+                                   :max-check-history           (props/parse-max-check-history config which-checker)
+                                   :endpoint                    (props/parse-endpoint config which-checker)
+                                   :environments                (props/parse-check-environments config which-checker)
+                                   :acknowledge-hours-to-expire (props/parse-hours-to-expire config which-checker)}
                      :executor executor
                      :alerting-fn (atom nil)
                      :last-check (atom nil)
                      :registered-checks (atom {})
-                     :check-results (atom {}))
+                     :check-results (atom {})
+                     :acknowledged-checks (atom {}))
           frequency (get-in new-self [:xray-config :refresh-frequency])]
       (hndl/register-handler handler (xray-routes new-self))
       (log/info "this is your xray-config:  " (:xray-config new-self))
