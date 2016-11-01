@@ -16,4 +16,5 @@
                    :dependencies [[de.otto/tesla-microservice "0.5.2"]
                                   [me.lomin/component-restart "0.1.1"]
                                   [de.otto/tesla-jetty "0.1.3"]
-                                  [ring-mock "0.1.5"]]}})
+                                  [ring-mock "0.1.5"]
+                                  [ch.qos.logback/logback-classic "1.1.7"]]}})
