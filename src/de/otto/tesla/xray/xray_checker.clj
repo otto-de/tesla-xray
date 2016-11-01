@@ -103,15 +103,16 @@
         map-entries (map (partial entry-with-started-future timeout) checks+env)]
     (into {} map-entries)))
 
+(defn acknowledgement-active? [[_ end-time]]
+  (> end-time (utils/current-time)))
+
+(defn with-cleared-acknowledgement-entry [new-state [check-name env-acknowledgements]]
+  (if-let [filtered (seq (filter acknowledgement-active? env-acknowledgements))]
+    (assoc new-state check-name (into {} filtered))
+    new-state))
+
 (defn clear-outdated-acknowledgements! [{:keys [acknowledged-checks]}]
-  (swap! acknowledged-checks (fn [acknowledged-checks] (->>
-                                                         acknowledged-checks
-                                                         (map (fn [[check-name env-to-time-map]]
-                                                                [check-name
-                                                                 (into {} (filter #(> (second %) (utils/current-time)) env-to-time-map))]))
-                                                         (filter #(not-empty (second %)))
-                                                         (into {})
-                                                         ))))
+  (swap! acknowledged-checks #(reduce with-cleared-acknowledgement-entry {} %)))
 
 (defn- start-the-xraychecks [{:keys [last-check registered-checks xray-config] :as self}]
   (clear-outdated-acknowledgements! self)

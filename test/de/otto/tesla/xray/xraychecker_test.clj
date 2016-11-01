@@ -351,3 +351,17 @@
               [check-b "dev"] [check-b "test"]]
              (build-check-name-env-vecs ["dev" "test"] {"CheckA" check-a
                                                         "CheckB" check-b}))))))
+
+
+(deftest clear-outdated-acknowledgements!
+  (testing "should clear outdated acknowledgements"
+    (with-redefs [utils/current-time (constantly 20)]
+      (let [state (atom {"CheckA" {"dev"  20
+                                   "prod" 30}
+                         "CheckB" {"dev"  30
+                                   "prod" 10}
+                         "CheckC" {"prod" 10}})]
+        (chkr/clear-outdated-acknowledgements! {:acknowledged-checks state})
+        (is (= {"CheckA" {"prod" 30}
+                "CheckB" {"dev" 30}}
+               @state))))))
