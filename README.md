@@ -70,12 +70,14 @@ Add a xray-checker to your system:
 ## Configuration
 These are the currently supported properties:
 ```clojure
-			:yourchecker-check-environments "env1;env2;env3" ;the envs where you want to execute your checks
-			:yourchecker-check-frequency "60000" ;schedule for executing the checks in ms (execution is done in parallel)
-			:yourchecker-check-endpoint "/xray-checker" ;where the ui shows up
-			:yourchecker-max-check-history "100" ;nr of checks to keep (in memory)
-			:yourchecker-nr-checks-displayed "5" ;nr checks to be diplayed for a check/env on /xray-checker/overview
-			:yourchecker-acknowledge-hours-to-expire 1 ;time for acknowledgements in hours, default is 24 (one day)
+{
+	:yourchecker-check-environments "env1;env2;env3" ;the envs where you want to execute your checks
+	:yourchecker-check-frequency "60000" ;schedule for executing the checks in ms (execution is done in parallel)
+	:yourchecker-check-endpoint "/xray-checker" ;where the ui shows up
+	:yourchecker-max-check-history "100" ;nr of checks to keep (in memory)
+	:yourchecker-nr-checks-displayed "5" ;nr checks to be diplayed for a check/env on /xray-checker/overview
+	:yourchecker-acknowledge-hours-to-expire 1 ;time for acknowledgements in hours, default is 24 (one day)
+}
 ```			
 
 ## UI
