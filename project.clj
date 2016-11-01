@@ -7,7 +7,7 @@
                  [overtone/at-at "1.2.0"]
                  [hiccup "1.0.5"]
                  [ring/ring-codec "1.0.1"]
-                 [clj-time "0.12.0"]]
+                 [clj-time "0.12.2"]]
   :test-paths ["test" "test-resources"]
   :lein-release {:deploy-via :clojars}
   :profiles {:dev {:plugins      [[lein-ancient "0.6.10"][lein-release/lein-release "1.0.9"]]
@@ -15,5 +15,5 @@
                    :source-paths ["src" "test"]
                    :dependencies [[de.otto/tesla-microservice "0.5.2"]
                                   [me.lomin/component-restart "0.1.1"]
-                                  [de.otto/tesla-jetty "0.1.2"]
+                                  [de.otto/tesla-jetty "0.1.3"]
                                   [ring-mock "0.1.5"]]}})
