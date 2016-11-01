@@ -4,7 +4,6 @@
     [de.otto.tesla.xray.util.utils :as utils]
     [de.otto.tesla.xray.ui.overall-status :as os]))
 
-(def calc-overall-status #'os/calc-overall-status)
 (deftest determining-the-overall-status
   (testing "should determine :ok"
     (with-redefs [utils/current-time (constantly 200)]
@@ -16,19 +15,19 @@
                                  "CheckB" {"dev"  {:overall-status :none}
                                            "test" {:overall-status :ok}
                                            "prod" {:overall-status :ok}}})]
-        (is (= :ok (calc-overall-status check-results last-check refresh-frequency))))))
+        (is (= :ok (os/calc-overall-status check-results last-check refresh-frequency))))))
   (testing "should determine :warning"
     (with-redefs [utils/current-time (constantly 200)]
       (let [last-check (atom 0)
             refresh-frequency 500
             check-results (atom {"CheckA" {"dev"  {:overall-status :ok}
                                            "test" {:overall-status :ok}
-                                           "prod" {:overall-status :ok}}
+                                           "prod" {:overall-status :acknowledged}}
                                  "CheckB" {"dev"  {:overall-status :none}
                                            "test" {:overall-status :ok}
                                            "prod" {:overall-status :warning}}})]
-        (is (= :warning (calc-overall-status check-results last-check refresh-frequency))))))
-  (testing "should determine :ok"
+        (is (= :warning (os/calc-overall-status check-results last-check refresh-frequency))))))
+  (testing "should determine :error"
     (with-redefs [utils/current-time (constantly 200)]
       (let [last-check (atom 0)
             refresh-frequency 500
@@ -36,9 +35,9 @@
                                            "test" {:overall-status :ok}
                                            "prod" {:overall-status :error}}
                                  "CheckB" {"dev"  {:overall-status :none}
-                                           "test" {:overall-status :ok}
+                                           "test" {:overall-status :acknowledged}
                                            "prod" {:overall-status :warning}}})]
-        (is (= :error (calc-overall-status check-results last-check refresh-frequency))))))
+        (is (= :error (os/calc-overall-status check-results last-check refresh-frequency))))))
 
   (testing "should determine :defunct if checks were not executed for a longer time"
     (with-redefs [utils/current-time (constantly 1000)]
@@ -50,7 +49,18 @@
                                  "CheckB" {"dev"  {:overall-status :ok}
                                            "test" {:overall-status :ok}
                                            "prod" {:overall-status :ok}}})]
-        (is (= :defunct (calc-overall-status check-results last-check refresh-frequency)))))))
+        (is (= :defunct (os/calc-overall-status check-results last-check refresh-frequency))))))
+  (testing "should determine :acknowledged if no checks are warning or error"
+    (with-redefs [utils/current-time (constantly 200)]
+      (let [last-check (atom 0)
+            refresh-frequency 500
+            check-results (atom {"CheckA" {"dev"  {:overall-status :ok}
+                                           "test" {:overall-status :ok}
+                                           "prod" {:overall-status :acknowledged}}
+                                 "CheckB" {"dev"  {:overall-status :ok}
+                                           "test" {:overall-status :ok}
+                                           "prod" {:overall-status :ok}}})]
+        (is (= :acknowledged (os/calc-overall-status check-results last-check refresh-frequency)))))))
 
 
 (def flat-results #'os/flat-results)

@@ -23,8 +23,19 @@ body {
     background-color: rgba(0, 255, 127, 0.35);
 }
 
+.acknowledged {
+    background-color: #49A8FF;
+    font-size: 20px;
+    color: #2c3e50;
+    background-color: rgba(73, 168, 255, 1);
+}
+
 .env-header.error {
     background-color: rgba(255, 0, 0, 1);
+}
+
+.single-check-results .env-header.error:hover {
+    background-color: #64CFFF;
 }
 
 .env-header.ok {
@@ -33,6 +44,10 @@ body {
 
 .env-header.warning {
     background-color: rgba(255, 249, 34, 1);
+}
+
+.env-header.acknowledged {
+    background-color: rgba(100, 207, 255, 1);
 }
 
 .none {
@@ -76,6 +91,9 @@ div.overall-warning {
 }
 div.overall-error {
     border: solid red 1px;
+}
+div.overall-acknowledged {
+    border: solid #49A8FF 1px;
 }
 
 div.env-results-container {

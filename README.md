@@ -69,13 +69,15 @@ Add a xray-checker to your system:
 
 ## Configuration
 These are the currently supported properties:
+```clojure
+			:yourchecker-check-environments "env1;env2;env3" ;the envs where you want to execute your checks
+			:yourchecker-check-frequency "60000" ;schedule for executing the checks in ms (execution is done in parallel)
+			:yourchecker-check-endpoint "/xray-checker" ;where the ui shows up
+			:yourchecker-max-check-history "100" ;nr of checks to keep (in memory)
+			:yourchecker-nr-checks-displayed "5" ;nr checks to be diplayed for a check/env on /xray-checker/overview
+			:yourchecker-acknowledge-hours-to-expire 1 ;time for acknowledgements in hours, default is 24 (one day)
+```			
 
-			yourchecker-check-environments=env1;env2;env3 ;the envs where you want to execute your checks
-			yourchecker-check-frequency=60000 ;schedule for executing the checks in ms (execution is done in parallel)
-			yourchecker-check-endpoint=/xray-checker ;where the ui shows up
-			yourchecker-max-check-history=100 ;nr of checks to keep (in memory)
-			yourchecker-nr-checks-displayed=5 ;nr checks to be diplayed for a check/env on /xray-checker/overview
-			
 ## UI
 ### Endpoint: /
 ![Example view of tesla-xray](doc/overall-status.png)
@@ -84,6 +86,19 @@ These are the currently supported properties:
 ### Endpoint: /detail/CheckC/test
 ![Example view of tesla-xray](doc/detailview.png)
 
+
+## Acknowledgement
+
+You are able to acknowledge checks that have an error by clicking on the check header in the detail view.
+ Acknowledgement lasts until it expires (default: one day, see config) or the check turns ok again.
+
+Endpoints for acknowledgement:
+* `/acknowledged-checks` GET: show all acknowledged checks and their expiration time
+* `/acknowledged-checks` POST: set new acknowledgement, parameters are: 
+    * `check-name` name of check to acknowledge
+    * `environment` in which environment the check should be acknowledged
+    *   `hours` acknowledgement time (in hours)
+* `/acknowledged-checks/<check-name>/<environment>` DELETE: delete acknowledgement for the check and environment specified in url
 
 ## Initial Contributors
 
