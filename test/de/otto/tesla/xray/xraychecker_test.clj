@@ -306,6 +306,11 @@
           (finally
             (comp/stop started)))))))
 
+(deftest stringify-acknowledged-checks-test
+  (testing "should format timestamp properly"
+    (is (= "{\"testCheck\":{\"dev\":\"1 November, 09:27\"}}"
+           (chkr/stringify-acknowledged-checks (atom {"testCheck" {"dev" 1477988830064}}))))))
+
 (deftest acknowledge-check-endpoints
   (testing "should put a check object with correct expire time in the acknowledged-checks atom"
     (with-redefs [utils/current-time (constantly 10)]

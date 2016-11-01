@@ -12,7 +12,9 @@
             [de.otto.tesla.xray.util.utils :as utils]
             [de.otto.tesla.stateful.handler :as hndl]
             [de.otto.tesla.xray.check :as chk]
-            [clojure.data.json :as json]))
+            [clojure.data.json :as json])
+  (:import (org.joda.time DateTime)
+           (org.joda.time.format DateTimeFormat)))
 
 (defprotocol XRayCheckerProtocol
   (set-alerting-function [self alerting-fn])
@@ -128,8 +130,12 @@
   (swap! acknowledged-checks update check-name dissoc environment)
   (swap! acknowledged-checks (fn [x] (into {} (filter #(not-empty (second %)) x)))))
 
+
 (defn stringify-acknowledged-checks [acknowledged-checks]
-  (json/write-str @acknowledged-checks))
+  (let [format-time (fn [_ value] (if (number? value)
+                                    (.toString (DateTime. value) (DateTimeFormat/forPattern "d MMMM, hh:mm"))
+                                    value))]
+    (json/write-str @acknowledged-checks :value-fn format-time)))
 
 (defn- xray-routes [{:keys [check-results last-check xray-config acknowledged-checks]}]
   (let [{:keys [endpoint]} xray-config]
