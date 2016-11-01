@@ -13,7 +13,8 @@
             [de.otto.tesla.stateful.handler :as hndl]
             [de.otto.tesla.xray.check :as chk]
             [clojure.data.json :as json])
-  (:import (org.joda.time.format DateTimeFormat)))
+  (:import (org.joda.time.format DateTimeFormat)
+           (org.joda.time DateTime)))
 
 (defprotocol XRayCheckerProtocol
   (set-alerting-function [self alerting-fn])
