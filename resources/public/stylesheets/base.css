@@ -34,10 +34,6 @@ body {
     background-color: rgba(255, 0, 0, 1);
 }
 
-.single-check-results .env-header.error:hover {
-    background-color: #64CFFF;
-}
-
 .env-header.ok {
     background-color: rgba(0, 255, 127, 1);
 }
@@ -57,24 +53,10 @@ body {
 }
 
 .index-link {
-    color : white;
+    color: white;
     text-decoration: none;
 }
 
-div.check-result-container {
-    width: 100%;
-}
-
-div.check-results {
-    float: left;
-    margin-top: 10px;
-    width: 100%;
-}
-div.single-check-results {
-    float: left;
-    margin-top: 10px;
-    width: 95%;
-}
 div.check-header {
     color: white;
     font-size: 30px;
@@ -83,21 +65,25 @@ div.check-header {
 div.overall-none {
     opacity: 0;
 }
+
 div.overall-ok {
     border: solid springgreen 1px;
 }
+
 div.overall-warning {
     border: solid #fff922 1px;
 }
+
 div.overall-error {
     border: solid red 1px;
 }
+
 div.overall-acknowledged {
     border: solid #49A8FF 1px;
 }
 
 div.env-results-container {
-    float:left;
+    float: left;
 }
 
 span.last-check {
@@ -108,4 +94,39 @@ div.env-header {
     font-size: 25px;
     color: black;
     text-align: center;
+}
+
+.submit-icon {
+    cursor: pointer;
+    width: 100%;
+    height: 100%;
+}
+
+.down-icon {
+    cursor: pointer;
+    width: 100%;
+    height: 100%;
+}
+
+.up-icon {
+    cursor: pointer;
+    width: 100%;
+    height: 100%;
+}
+
+.done-icon {
+    width: 100%;
+    height: 100%;
+}
+
+.up-icon:active polyline {
+    fill: white;
+}
+
+.down-icon:active polyline {
+    fill: white;
+}
+
+.submit-icon:active polyline {
+    fill: white;
 }

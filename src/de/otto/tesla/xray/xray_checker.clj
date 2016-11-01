@@ -162,7 +162,7 @@
         (comp/GET (str endpoint "/detail/:check-name/:environment") [check-name environment]
           {:status  200
            :headers {"Content-Type" "text/html"}
-           :body    (dp/render-detail-page check-results xray-config check-name environment)})
+           :body    (dp/render-detail-page check-results acknowledged-checks xray-config check-name environment)})
 
         (comp/GET (str endpoint "/acknowledged-checks") []
           {:status  200

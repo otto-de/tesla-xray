@@ -18,16 +18,17 @@
       the-html)))
 
 (defn render-results-for-env
-  [total-cols nr-checks-displayed checkname endpoint show-links? [env {:keys [results overall-status]}] & {:keys [on-click]
-                                                                                                           :or   {on-click ""}}]
+  [total-cols nr-checks-displayed checkname endpoint show-links? [env {:keys [results overall-status]}]]
   (let [width (int (/ 97 total-cols))
         padding (int (/ 3 total-cols))
         should-show-links? (and
                              (not (= overall-status :none))
                              show-links?)]
-    (-> [:div {:class "env-results-container" :style (str "width: " width "%; padding-left: " padding "%;")}
+    (-> [:div {:class "env-results-container"
+               :style (str "width: " width "%;"
+                           (when (> total-cols 1) (str " padding-left:" padding "% ;")))}
          [:div {:class (str "overall-" (name overall-status))}
-          [:div {:class (str "env-header " (name overall-status)) :onClick on-click} env]
+          [:div {:class (str "env-header " (name overall-status))} env]
           (map single-check-result-as-html (take nr-checks-displayed results))]]
         (wrapped-with-links-to-detail-page should-show-links? endpoint checkname env))))
 
@@ -37,7 +38,7 @@
 (defn- check-results-as-html [{:keys [environments nr-checks-displayed endpoint]} [checkname results-for-env]]
   (let [show-links true
         sorted-results (sort-results-by-env results-for-env environments)]
-    [:div {:class "check-results"}
+    [:div {:class "check-results-row"}
      [:div {:class "check-header"} checkname]
      (map (partial render-results-for-env (count results-for-env) nr-checks-displayed checkname endpoint show-links) sorted-results)]))
 
@@ -52,7 +53,7 @@
      [:meta {:charset "utf-8"}]
      [:meta {:http-equiv "refresh" :content (/ refresh-frequency 1000)}]
      [:title "XRayCheck Results"]
-     (hc/include-css "/stylesheets/base.css")
+     (hc/include-css "/stylesheets/base.css" "/stylesheets/overview.css")
      (when (io/resource "public/stylesheets/custom.css")
        (hc/include-css "/stylesheets/custom.css"))]
     [:body
@@ -60,5 +61,5 @@
       [:h1 [:a {:class "index-link" :href endpoint} "<-"] "XRayCheck Results"]
       [:h2 [:span {:class "last-check"} "Last check: " (utils/readable-timestamp @last-check)]]
       (render-overall-status-container check-results last-check xray-config)]
-     [:div {:class "check-result-container"}
+     [:div {:class "overview-container"}
       (map (partial check-results-as-html xray-config) @check-results)]]))

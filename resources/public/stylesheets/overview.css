@@ -1,0 +1,15 @@
+.overview-container {
+    width: 100%;
+}
+
+.overview-container .check-results-row{
+    float: left;
+    margin-top: 10px;
+    width: 100%;
+}
+
+.overview-container .single-check-results {
+    float: left;
+    margin-top: 10px;
+    width: 95%;
+}
