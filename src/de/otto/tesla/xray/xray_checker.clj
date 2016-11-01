@@ -158,13 +158,13 @@
 
         (comp/POST (str endpoint "/acknowledged-checks") [check-name environment hours]
           (acknowledge-check! check-results acknowledged-checks check-name environment hours)
-          {:status  200
+          {:status  204
            :headers {"Content-Type" "text/plain"}
            :body    ""})
 
         (comp/DELETE (str endpoint "/acknowledged-checks/:check-name/:environment") [check-name environment]
           (remove-acknowledgement! acknowledged-checks check-name environment)
-          {:status  200
+          {:status  204
            :headers {"Content-Type" "text/plain"}
            :body    ""})
         ))))
