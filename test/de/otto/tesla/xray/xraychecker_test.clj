@@ -132,38 +132,99 @@
                                                          (chk/->XRayCheckResult :ok "dummy-message" 0 10)]}}}
                  @(:check-results xray-checker)))
           (finally
-            (comp/stop started))))))
+            (comp/stop started)))))))
 
-  (testing "should apply the correct state to checks that are in the acknowledged atom"
+(deftest acknowledging-test
+  (testing "should acknowledge single check using POST endpoint"
     (let [started (comp/start (test-system {:test-check-frequency    "200000"
                                             :test-check-environments "dev"
                                             :test-max-check-history  "2"}))
-          xray-checker (:xray-checker started)]
+          {:keys [xray-checker handler]} started
+          handler-fn (handler/handler handler)
+          current-time 10
+          acknowledge-hours 15
+          acknowledge-hours-in-millis (* 15 60 60 1000)]
       (chkr/register-check xray-checker (->ErrorCheck) "ErrorCheck")
       (try
-        (with-redefs [utils/current-time (constantly 10)]
-          (is (= {}
-                 @(:acknowledged-checks xray-checker)))
+        (with-redefs [utils/current-time (constantly current-time)]
+          ;nothing on startup
+          (is (= {} @(:acknowledged-checks xray-checker)))
+          (is (= {} @(:check-results xray-checker)))
+
+          ;plain error result after first check
           (start-the-xraychecks xray-checker)
+          (is (= {} @(:acknowledged-checks xray-checker)))
           (is (= {"ErrorCheck" {"dev" {:overall-status :error
                                        :results        [(chk/->XRayCheckResult :error "error-message" 0 10)]}}}
                  @(:check-results xray-checker)))
-          (swap! (:acknowledged-checks xray-checker) assoc-in ["ErrorCheck" "dev"] 15)
+
+          ;ACKNOWLEDGE!
+          (is (= 200 (-> (handler-fn (mock/request :post (str "/xray-checker/acknowledged-checks?check-name=ErrorCheck&environment=dev&hours=" acknowledge-hours)))
+                         :status)))
+          ;acknowledged results
           (start-the-xraychecks xray-checker)
+          (is (= {"ErrorCheck" {"dev" (+ acknowledge-hours-in-millis current-time)}} @(:acknowledged-checks xray-checker)))
           (is (= {"ErrorCheck" {"dev" {:overall-status :acknowledged
                                        :results        [(chk/->XRayCheckResult :acknowledged "error-message; Acknowledged" 0 10)
                                                         (chk/->XRayCheckResult :error "error-message" 0 10)]}}}
                  @(:check-results xray-checker))))
+        (finally
+          (comp/stop started)))))
 
-        (with-redefs [utils/current-time (constantly 20)
-                      at/every (constantly nil)]
+  (testing "should cleanup acknowledgement after configured time"
+    (let [started (comp/start (test-system {:test-check-frequency    "200000"
+                                            :test-check-environments "dev"
+                                            :test-max-check-history  "2"}))
+          {:keys [xray-checker handler]} started
+          handler-fn (handler/handler handler)
+          start-time 10
+          acknowledge-hours 15
+          acknowledge-hours-in-millis (* 15 60 60 1000)
+          time-after-acknowledged-check (+ start-time acknowledge-hours-in-millis 1)]
+      (chkr/register-check xray-checker (->ErrorCheck) "ErrorCheck")
+      (try
+        (with-redefs [utils/current-time (constantly start-time)]
+          ;ACKNOWLEDGE!
+          (is (= 200 (-> (handler-fn (mock/request :post (str "/xray-checker/acknowledged-checks?check-name=ErrorCheck&environment=dev&hours=" acknowledge-hours)))
+                         :status)))
+          ;acknowledged results
           (start-the-xraychecks xray-checker)
-          (is (= {}
-                 @(:acknowledged-checks xray-checker)))
-          (is (= {"ErrorCheck" {"dev" {:overall-status :error
-                                       :results        [(chk/->XRayCheckResult :error "error-message" 0 20)
-                                                        (chk/->XRayCheckResult :acknowledged "error-message; Acknowledged" 0 10)]}}}
+          (is (= {"ErrorCheck" {"dev" (+ acknowledge-hours-in-millis start-time)}} @(:acknowledged-checks xray-checker)))
+          (is (= {"ErrorCheck" {"dev" {:overall-status :acknowledged
+                                       :results        [(chk/->XRayCheckResult :acknowledged "error-message; Acknowledged" 0 start-time)]}}}
                  @(:check-results xray-checker))))
+
+        (with-redefs [utils/current-time (constantly time-after-acknowledged-check)]
+          (start-the-xraychecks xray-checker)
+          (is (= {} @(:acknowledged-checks xray-checker)))
+          (is (= {"ErrorCheck" {"dev" {:overall-status :error
+                                       :results        [(chk/->XRayCheckResult :error "error-message" 0 time-after-acknowledged-check)
+                                                        (chk/->XRayCheckResult :acknowledged "error-message; Acknowledged" 0 start-time)]}}}
+                 @(:check-results xray-checker))))
+        (finally
+          (comp/stop started)))))
+
+  (testing "should delete acknowledgement"
+    (let [started (comp/start (test-system {:test-check-frequency    "200000"
+                                            :test-check-environments "dev"
+                                            :test-max-check-history  "2"}))
+          {:keys [xray-checker handler]} started
+          handler-fn (handler/handler handler)
+          start-time 10
+          acknowledge-hours 15
+          acknowledge-hours-in-millis (* 15 60 60 1000)
+          time-after-acknowledged-check (+ start-time acknowledge-hours-in-millis 1)]
+      (chkr/register-check xray-checker (->ErrorCheck) "ErrorCheck")
+      (try
+        (with-redefs [utils/current-time (constantly start-time)]
+          ;ACKNOWLEDGE!
+          (is (= 200 (-> (handler-fn (mock/request :post (str "/xray-checker/acknowledged-checks?check-name=ErrorCheck&environment=dev&hours=" acknowledge-hours)))
+                         :status)))
+          (is (= {"ErrorCheck" {"dev" (+ acknowledge-hours-in-millis start-time)}} @(:acknowledged-checks xray-checker)))
+          ;DELETE ACKNOWLEDGEMENT!
+          (is (= 200 (-> (handler-fn (mock/request :delete "/xray-checker/acknowledged-checks/ErrorCheck/dev"))
+                         :status)))
+          (is (= {} @(:acknowledged-checks xray-checker))))
         (finally
           (comp/stop started))))))
 
