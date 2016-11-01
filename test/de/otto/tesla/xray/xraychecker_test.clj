@@ -9,7 +9,8 @@
     [com.stuartsierra.component :as c]
     [de.otto.tesla.xray.util.utils :as utils]
     [de.otto.tesla.stateful.handler :as handler]
-    [ring.mock.request :as mock]))
+    [ring.mock.request :as mock])
+  (:import (org.joda.time DateTimeZone DateTime)))
 
 (defrecord DummyCheck []
   chk/XRayCheck
@@ -308,8 +309,9 @@
 
 (deftest stringify-acknowledged-checks-test
   (testing "should format timestamp properly"
-    (is (= "{\"testCheck\":{\"dev\":\"1 November, 09:27\"}}"
-           (chkr/stringify-acknowledged-checks (atom {"testCheck" {"dev" 1477988830064}}))))))
+    (with-redefs [chkr/as-date-time (fn [millis] (DateTime. millis DateTimeZone/UTC))]
+      (is (= "{\"testCheck\":{\"dev\":\"1 November, 08:27\"}}"
+             (chkr/stringify-acknowledged-checks (atom {"testCheck" {"dev" 1477988830064}})))))))
 
 (deftest acknowledge-check-endpoints
   (testing "should put a check object with correct expire time in the acknowledged-checks atom"
