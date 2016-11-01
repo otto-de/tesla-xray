@@ -13,7 +13,7 @@
   :profiles {:dev {:plugins      [[lein-ancient "0.6.10"][lein-release/lein-release "1.0.9"]]
                    :main de.otto.tesla.xray.testsystem
                    :source-paths ["src" "test"]
-                   :dependencies [[de.otto/tesla-microservice "0.3.36"]
+                   :dependencies [[de.otto/tesla-microservice "0.5.2"]
                                   [me.lomin/component-restart "0.1.1"]
                                   [de.otto/tesla-jetty "0.1.2"]
                                   [ring-mock "0.1.5"]]}})

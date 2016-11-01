@@ -5,11 +5,11 @@
     [de.otto.tesla.xray.check :as chk]
     [com.stuartsierra.component :as comp]
     [de.otto.tesla.system :as tesla]
+    [de.otto.tesla.util.test-utils :refer [eventually]]
     [com.stuartsierra.component :as c]
     [de.otto.tesla.xray.util.utils :as utils]
     [de.otto.tesla.stateful.handler :as handler]
-    [ring.mock.request :as mock]
-    [overtone.at-at :as at]))
+    [ring.mock.request :as mock]))
 
 (defrecord DummyCheck []
   chk/XRayCheck
@@ -66,12 +66,11 @@
           (is (= {"DummyCheckA" (chkr/->RegisteredXRayCheck (->DummyCheck) "DummyCheckA" chkr/default-strategy)
                   "DummyCheckB" (chkr/->RegisteredXRayCheck (->DummyCheck) "DummyCheckB" chkr/default-strategy)}
                  @(:registered-checks xray-checker)))
-          (Thread/sleep 100)
-          (is (= {"DummyCheckA" {"dev" {:overall-status :ok
-                                        :results        [(chk/->XRayCheckResult :ok "dummy-message" 0 10)]}}
-                  "DummyCheckB" {"dev" {:overall-status :ok
-                                        :results        [(chk/->XRayCheckResult :ok "dummy-message" 0 10)]}}}
-                 @(:check-results xray-checker)))
+          (eventually (= {"DummyCheckA" {"dev" {:overall-status :ok
+                                                :results        [(chk/->XRayCheckResult :ok "dummy-message" 0 10)]}}
+                          "DummyCheckB" {"dev" {:overall-status :ok
+                                                :results        [(chk/->XRayCheckResult :ok "dummy-message" 0 10)]}}}
+                         @(:check-results xray-checker)))
           (finally
             (comp/stop started)))
         ))))
@@ -88,11 +87,10 @@
         (try
           (is (= {"BlockingCheck" (chkr/->RegisteredXRayCheck (->BlockingCheck) "BlockingCheck" chkr/default-strategy)}
                  @(:registered-checks xray-checker)))
-          (Thread/sleep 310)
-          (is (= {"BlockingCheck" {"dev" {:overall-status :error
-                                          :results        [(chk/->XRayCheckResult :error "BlockingCheck did not finish in 100 ms" 100 10)
-                                                           (chk/->XRayCheckResult :error "BlockingCheck did not finish in 100 ms" 100 10)]}}}
-                 @(:check-results xray-checker)))
+          (eventually (= {"BlockingCheck" {"dev" {:overall-status :error
+                                                  :results        [(chk/->XRayCheckResult :error "BlockingCheck did not finish in 100 ms" 100 10)
+                                                                   (chk/->XRayCheckResult :error "BlockingCheck did not finish in 100 ms" 100 10)]}}}
+                         @(:check-results xray-checker)))
           (finally
             (comp/stop started)))))))
 
@@ -238,11 +236,9 @@
             xray-checker (:xray-checker started)]
         (try
           (chkr/register-check xray-checker (->DummyCheckWithoutReturnedStatus) "DummyCheckWithoutReturnedStatus")
-          (start-the-xraychecks xray-checker)
-          (Thread/sleep 10)
-          (is (= {"DummyCheckWithoutReturnedStatus" {"dev" {:overall-status :warning
-                                                            :results        [(chk/->XRayCheckResult :warning "no xray-result returned by check" 0 10)]}}}
-                 @(:check-results xray-checker)))
+          (eventually (= {"DummyCheckWithoutReturnedStatus" {"dev" {:overall-status :warning
+                                                                    :results        [(chk/->XRayCheckResult :warning "no xray-result returned by check" 0 10)]}}}
+                         @(:check-results xray-checker)))
           (finally
             (comp/stop started))))))
   (testing "should be able to catch assertions in test"
@@ -252,11 +248,9 @@
             xray-checker (:xray-checker started)]
         (try
           (chkr/register-check xray-checker (->AssertionCheck) "AssertionCheck")
-          (start-the-xraychecks xray-checker)
-          (Thread/sleep 10)
-          (is (= {"AssertionCheck" {"dev" {:overall-status :error
-                                           :results        [(chk/->XRayCheckResult :error "Assert failed: (= 1 2)" 0 10)]}}}
-                 @(:check-results xray-checker)))
+          (eventually (= {"AssertionCheck" {"dev" {:overall-status :error
+                                                   :results        [(chk/->XRayCheckResult :error "Assert failed: (= 1 2)" 0 10)]}}}
+                         @(:check-results xray-checker)))
           (finally
             (comp/stop started)))))))
 
@@ -302,14 +296,13 @@
           (chkr/register-check xray-checker (->WaitingDummyCheck 100) "DummyCheck2")
           (chkr/register-check xray-checker (->WaitingDummyCheck 100) "DummyCheck3")
           (start-the-xraychecks xray-checker)               ; wait for start
-          (Thread/sleep 100)
-          (is (= {"DummyCheck1" {"dev" {:overall-status :ok
-                                        :results        [(chk/->XRayCheckResult :ok 0 0 10)]}}
-                  "DummyCheck2" {"dev" {:overall-status :ok
-                                        :results        [(chk/->XRayCheckResult :ok 100 0 10)]}}
-                  "DummyCheck3" {"dev" {:overall-status :ok
-                                        :results        [(chk/->XRayCheckResult :ok 100 0 10)]}}}
-                 @(:check-results xray-checker)))
+          (eventually (= {"DummyCheck1" {"dev" {:overall-status :ok
+                                                :results        [(chk/->XRayCheckResult :ok 0 0 10)]}}
+                          "DummyCheck2" {"dev" {:overall-status :ok
+                                                :results        [(chk/->XRayCheckResult :ok 100 0 10)]}}
+                          "DummyCheck3" {"dev" {:overall-status :ok
+                                                :results        [(chk/->XRayCheckResult :ok 100 0 10)]}}}
+                         @(:check-results xray-checker)))
           (finally
             (comp/stop started)))))))
 
