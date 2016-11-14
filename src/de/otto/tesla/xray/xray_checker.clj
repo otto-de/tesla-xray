@@ -8,6 +8,7 @@
             [de.otto.tesla.xray.ui.overall-status :as oas]
             [de.otto.tesla.xray.conf.reading-properties :as props]
             [compojure.route :as croute]
+            [de.otto.tesla.stateful.scheduler :as sched]
             [compojure.handler :as chandler]
             [de.otto.tesla.xray.util.utils :as utils]
             [de.otto.tesla.stateful.handler :as hndl]
@@ -185,19 +186,17 @@
 (defn default-strategy [results]
   (:status (first results)))
 
-(defrecord XrayChecker [which-checker handler config registered-checks]
+(defrecord XrayChecker [which-checker scheduler handler config registered-checks]
   c/Lifecycle
   (start [self]
     (log/info "-> starting XrayChecker")
-    (let [executor (at/mk-pool)
-          new-self (assoc self
+    (let [new-self (assoc self
                      :xray-config {:refresh-frequency           (props/parse-refresh-frequency config which-checker)
                                    :nr-checks-displayed         (props/parse-nr-checks-displayed config which-checker)
                                    :max-check-history           (props/parse-max-check-history config which-checker)
                                    :endpoint                    (props/parse-endpoint config which-checker)
                                    :environments                (props/parse-check-environments config which-checker)
                                    :acknowledge-hours-to-expire (props/parse-hours-to-expire config which-checker)}
-                     :executor executor
                      :alerting-fn (atom nil)
                      :last-check (atom nil)
                      :registered-checks (atom {})
@@ -206,18 +205,12 @@
           frequency (get-in new-self [:xray-config :refresh-frequency])]
       (hndl/register-handler handler (xray-routes new-self))
       (log/info "this is your xray-config:  " (:xray-config new-self))
-      (if frequency
-        (assoc new-self
-          :schedule (at/every frequency
-                              #(start-the-xraychecks new-self)
-                              executor))
-        new-self)))
+      (when frequency
+        (at/every frequency (partial start-the-xraychecks new-self) (sched/pool scheduler) :desc "Xray-Checker"))
+      new-self))
 
   (stop [self]
     (log/info "<- stopping XrayChecker")
-    (when-let [job (:schedule self)]
-      (at/kill job))
-    (at/stop-and-reset-pool! (:executor self))
     self)
 
   XRayCheckerProtocol

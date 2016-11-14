@@ -52,7 +52,7 @@
 
 (defn test-system [runtime-config]
   (-> (tesla/base-system (assoc runtime-config :name "test-system"))
-      (assoc :xray-checker (c/using (chkr/new-xraychecker "test") [:handler :config]))))
+      (assoc :xray-checker (c/using (chkr/new-xraychecker "test") [:handler :config :scheduler]))))
 
 (deftest check-scheduling
   (testing "should execute checks with configured check-frequency"

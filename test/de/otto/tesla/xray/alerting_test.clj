@@ -19,7 +19,7 @@
 
 (defn test-system [runtime-config]
   (-> (tesla/base-system (assoc runtime-config :name "test-system"))
-      (assoc :xray-checker (c/using (chkr/new-xraychecker "test") [:handler :config]))))
+      (assoc :xray-checker (c/using (chkr/new-xraychecker "test") [:handler :config :scheduler]))))
 
 (defn replace-all-timestamps [k]
   (if (:last-alert k)
