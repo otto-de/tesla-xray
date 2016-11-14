@@ -42,24 +42,23 @@
      [:div {:class "check-header"} checkname]
      (map (partial render-results-for-env (count results-for-env) nr-checks-displayed checkname endpoint show-links) sorted-results)]))
 
-(defn- render-overall-status-container [check-results last-check {:keys [refresh-frequency]}]
-  (let [the-overall-status (name (os/calc-overall-status check-results last-check refresh-frequency))]
-    [:div {:class (str "env-header " the-overall-status)}
-     the-overall-status]))
-
 (defn render-env-overview [check-results last-check {:keys [endpoint refresh-frequency] :as xray-config}]
-  (hc/html5
-    [:head
-     [:meta {:charset "utf-8"}]
-     [:meta {:http-equiv "refresh" :content (/ refresh-frequency 1000)}]
-     [:title "XRayCheck Results"]
-     (hc/include-css "/stylesheets/base.css" "/stylesheets/overview.css")
-     (when (io/resource "public/stylesheets/custom.css")
-       (hc/include-css "/stylesheets/custom.css"))]
-    [:body
-     [:header
-      [:h1 [:a {:class "index-link" :href endpoint} "<-"] "XRayCheck Results"]
-      [:h2 [:span {:class "last-check"} "Last check: " (utils/readable-timestamp @last-check)]]
-      (render-overall-status-container check-results last-check xray-config)]
-     [:div {:class "overview-container"}
-      (map (partial check-results-as-html xray-config) @check-results)]]))
+  (let [the-overall-status (name (os/calc-overall-status check-results last-check refresh-frequency))]
+    (hc/html5
+      [:head
+       [:meta {:charset "utf-8"}]
+       [:meta {:http-equiv "refresh" :content (/ refresh-frequency 1000)}]
+       [:title "XRayCheck Results"]
+       (hc/include-css "/stylesheets/base.css" "/stylesheets/overview.css")
+       (when (io/resource "public/stylesheets/custom.css")
+         (hc/include-css "/stylesheets/custom.css"))]
+      [:body
+       [:div {:class (str "xray-container overall-status-" the-overall-status)}
+        [:header
+         [:div {:class "overview-header-left"}
+          [:h1 [:a {:class "index-link" :href endpoint} "<-"] "XRayCheck Results"]
+          [:h2 [:span {:class "last-check"} "Last check: " (utils/readable-timestamp @last-check)]]]
+         [:div {:class (str "overview-header-right " the-overall-status "-header")}
+          [:b (.toUpperCase the-overall-status)]]]
+        [:div {:class "overview-container"}
+         (map (partial check-results-as-html xray-config) @check-results)]]])))

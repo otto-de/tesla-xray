@@ -9,10 +9,11 @@
   (:gen-class))
 
 (defn random-result []
-  (case (rand-int 3)
+  (case (rand-int 4)
     0 (chk/->XRayCheckResult :ok "ok")
     1 (chk/->XRayCheckResult :error "error")
-    2 (chk/->XRayCheckResult :warning "warning")))
+    2 (chk/->XRayCheckResult :warning "warning")
+    3 (chk/->XRayCheckResult :acknowledged "acknowledged")))
 
 (defrecord Check [check-name]
   c/Lifecycle
@@ -28,7 +29,7 @@
 (defn test-system [runtime-config]
   (-> (tesla/base-system (assoc runtime-config :name "test-system"))
       (assoc
-        :rt-checker (c/using (chkr/new-xraychecker "test") [:handler :config])
+        :rt-checker (c/using (chkr/new-xraychecker "test") [:handler :config :scheduler])
         :check0 (c/using (->Check "check0") [:rt-checker])
         :check1 (c/using (->Check "check1") [:rt-checker])
         :check2 (c/using (->Check "check2") [:rt-checker])
