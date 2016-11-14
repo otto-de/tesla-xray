@@ -6,8 +6,7 @@
   :dependencies [[org.clojure/clojure "1.8.0"]
                  [de.otto/tesla-microservice "0.5.2"]
                  [hiccup "1.0.5"]
-                 [ring/ring-codec "1.0.1"]
-                 [clj-time "0.12.2"]]
+                 [ring/ring-codec "1.0.1"]]
   :test-paths ["test" "test-resources"]
   :lein-release {:deploy-via :clojars}
   :profiles {:dev {:plugins      [[lein-ancient "0.6.10"][lein-release/lein-release "1.0.9"]]
