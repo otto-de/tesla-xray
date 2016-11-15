@@ -116,12 +116,15 @@
   (swap! acknowledged-checks #(reduce with-cleared-acknowledgement-entry {} %)))
 
 (defn- start-the-xraychecks [{:keys [last-check registered-checks xray-config] :as self}]
-  (clear-outdated-acknowledgements! self)
-  (let [checks+env (build-check-name-env-vecs (:environments xray-config) @registered-checks)
-        checks+env-to-futures (build-future-map xray-config checks+env)]
-    (doseq [[[^RegisteredXRayCheck xray-check current-env] f] checks+env-to-futures]
-      (update-results! self xray-check current-env (deref f)))
-    (reset! last-check (utils/current-time))))
+  (try
+    (clear-outdated-acknowledgements! self)
+    (let [checks+env (build-check-name-env-vecs (:environments xray-config) @registered-checks)
+          checks+env-to-futures (build-future-map xray-config checks+env)]
+      (doseq [[[^RegisteredXRayCheck xray-check current-env] f] checks+env-to-futures]
+        (update-results! self xray-check current-env (deref f)))
+      (reset! last-check (utils/current-time)))
+    (catch Exception e
+      (log/error e "caught error when trying to start the xraychecks"))))
 
 (defn acknowledge-check! [check-results acknowledged-checks check-name environment duration-in-hours]
   (let [duration-in-ms (* 60 60 1000 (Long/parseLong duration-in-hours))]
