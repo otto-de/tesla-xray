@@ -366,4 +366,21 @@
         (chkr/clear-outdated-acknowledgements! {:acknowledged-checks state})
         (is (= {"CheckA" {"prod" 30}
                 "CheckB" {"dev" 30}}
-               @state))))))
+               @state)))))
+
+  (testing "should acknowledge check and clear acknowledgements"
+    (let [mock-time 20]
+      (with-redefs [utils/current-time (constantly mock-time)]
+        (let [check-results (atom {})
+              hour-as-millis (* 60 60 1000)
+              acknowledged-checks (atom {})]
+          (chkr/acknowledge-check! check-results acknowledged-checks "CheckA" "dev" "1")
+          (is (= {"CheckA" {"dev" (+ (* 1 hour-as-millis) mock-time)}} @acknowledged-checks))
+          (chkr/acknowledge-check! check-results acknowledged-checks "CheckB" "prod" "1")
+          (is (= {"CheckA" {"dev" (+ (* 1 hour-as-millis) mock-time)}
+                  "CheckB" {"prod" (+ (* 1 hour-as-millis) mock-time)}} @acknowledged-checks))
+          (with-redefs [utils/current-time (constantly (+ (* 2 hour-as-millis) mock-time))]
+            (chkr/clear-outdated-acknowledgements! {:acknowledged-checks acknowledged-checks})
+            (is (= {} @acknowledged-checks))
+            (chkr/clear-outdated-acknowledgements! {:acknowledged-checks acknowledged-checks})
+            (is (= {} @acknowledged-checks))))))))
