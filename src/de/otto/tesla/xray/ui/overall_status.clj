@@ -32,9 +32,9 @@
        (when (io/resource "public/stylesheets/custom.css")
          (hc/include-css "/stylesheets/custom.css"))]
       [:body
-       [:div {:class "overall-status-page-headline"}
+       [:div {:class "overall-status-page-headline big"}
         [:p "Last check: " (utils/readable-timestamp @last-check)]]
 
        [:a {:href (str endpoint "/overview")}
-        [:div {:class (str "overall-status-page " overall-status)}
+        [:div {:class (str "overall-status-page big " overall-status)}
          [:div (.toUpperCase overall-status)]]]])))

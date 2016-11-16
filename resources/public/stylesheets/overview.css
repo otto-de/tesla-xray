@@ -1,11 +1,7 @@
-.xray-container {
-    width: 100%;
-    height: 100vh;
-    overflow: auto;
-}
-
 .overview-container {
     width: 100%;
+    height: 100%;
+    overflow: auto;
 }
 
 .overview-container .check-results-row{
@@ -20,45 +16,22 @@
     width: 95%;
 }
 
-.overview-header-left {
-    float: left;
-    width: 40%;
+.overall-status-error {
+    background-color: rgba(255, 0, 0, .3);;
 }
 
-.overview-header-right {
-    float: left;
-    width: 60%;
-    font-size: 10vh;
-    color: white;
+.overall-status-warning {
+    background-color: rgba(255, 249, 34, .3);
 }
 
-@keyframes blinking {
-    from {opacity: 0;}
-    to {opacity: 1;}
+.overall-status-ok {
+    background-color: rgba(0, 255, 127, .3);;
 }
 
-.warning-header{
-    color: rgba(255, 249, 34, 1);
+.overall-status-defunct {
+    background-color: rgba(241, 70, 255, .3);
 }
 
-.error-header{
-    color: rgba(255, 0, 0, 1);
-}
-
-.ok-header{
-    color: rgba(0, 255, 127, 1);
-}
-
-.defunct-header{
-    color: rgba(241, 70, 255,1);
-}
-
-.acknowledged-header{
-    color: rgba(100, 207, 255, 1);
-}
-
-.warning-header, .error-header, .defunct-header {
-    animation-name: blinking;
-    animation-duration: 2s;
-    animation-iteration-count: infinite;
+.overall-status-acknowledged {
+    background-color: rgba(100, 207, 255, .3);
 }

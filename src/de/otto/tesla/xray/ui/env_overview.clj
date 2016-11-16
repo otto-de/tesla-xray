@@ -49,16 +49,16 @@
        [:meta {:charset "utf-8"}]
        [:meta {:http-equiv "refresh" :content (/ refresh-frequency 1000)}]
        [:title "XRayCheck Results"]
-       (hc/include-css "/stylesheets/base.css" "/stylesheets/overview.css")
+       (hc/include-css "/stylesheets/base.css" "/stylesheets/overview.css" "/stylesheets/overall-status.css")
        (when (io/resource "public/stylesheets/custom.css")
          (hc/include-css "/stylesheets/custom.css"))]
       [:body
-       [:div {:class (str "xray-container overall-status-" the-overall-status)}
-        [:header
-         [:div {:class "overview-header-left"}
-          [:h1 [:a {:class "index-link" :href endpoint} "<-"] "XRayCheck Results"]
-          [:h2 [:span {:class "last-check"} "Last check: " (utils/readable-timestamp @last-check)]]]
-         [:div {:class (str "overview-header-right " the-overall-status "-header")}
-          [:b (.toUpperCase the-overall-status)]]]
-        [:div {:class "overview-container"}
-         (map (partial check-results-as-html xray-config) @check-results)]]])))
+       [:div {:class "overall-status-page-headline small"}
+        [:p [:a {:style "text-decoration: none; color: white;" :href endpoint} "<"]
+         " Last check: " (utils/readable-timestamp @last-check)]]
+
+       [:div {:class (str "overall-status-page small " the-overall-status)}
+        [:div (.toUpperCase the-overall-status)]]
+
+       [:div {:class (str "overview-container overall-status-" the-overall-status)}
+        (map (partial check-results-as-html xray-config) @check-results)]])))

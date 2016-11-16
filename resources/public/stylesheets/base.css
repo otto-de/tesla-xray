@@ -140,22 +140,3 @@ div.env-header {
     fill: white;
 }
 
-.overall-status-error {
-    background-color: rgba(255, 0, 0, .3);;
-}
-
-.overall-status-warning {
-    background-color: rgba(255, 249, 34, .3);
-}
-
-.overall-status-ok {
-    background-color: rgba(0, 255, 127, .3);;
-}
-
-.overall-status-defunct {
-    background-color: rgba(241, 70, 255, .3);
-}
-
-.overall-status-acknowledged {
-    background-color: rgba(100, 207, 255, .3);
-}
