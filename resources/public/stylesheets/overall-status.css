@@ -1,18 +1,52 @@
-div.overall-status-page {
-    width: 100%;
-    height: 100%;
-    font-size: 30vw;
-    text-decoration: none;
-    color: black;
+.overall-status-page-headline {
     text-align: center;
+    font-size: 6vh;
+    width: 80vw;
+    margin: auto;
+    height: 10vh;
+    color: white;
+}
+
+.overall-status-page {
+    border-radius: 2vw;
+    width: 80vw;
+    margin: auto;
+    height: 70vh;
+    overflow: hidden;
+}
+
+.overall-status-page div {
+    text-align: center;
+    font-size: 20vh;
+    line-height: 70vh;
+    color: black;
+    margin: 0;
+}
+
+.overall-status-page.error {
+    box-shadow: 0 2vh 10vh var(--error-color);
+}
+.overall-status-page.warning {
+    box-shadow: 0 2vh 10vh var(--warning-color);
+}
+.overall-status-page.ok {
+    box-shadow: 0 2vh 10vh var(--ok-color);
+}
+.overall-status-page.acknowledged {
+    box-shadow: 0 2vh 10vh var(--acknowledged-color);
+}
+.overall-status-page.defunct {
+    box-shadow: 0 2vh 10vh var(--defunct-color);
 }
 
 a {
     text-decoration: none;
 }
+
 .overall-status-page.error {
     background-color: rgba(255, 0, 0, 1);
 }
+
 .overall-status-page.defunct {
     background-color: rgb(241, 70, 255);
 }

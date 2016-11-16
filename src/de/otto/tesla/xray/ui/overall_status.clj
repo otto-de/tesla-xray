@@ -20,24 +20,21 @@
       (some #(= :acknowledged %) all-status) :acknowledged
       :default :ok)))
 
-(defn render-overall-status-container [check-results last-check {:keys [refresh-frequency endpoint]}]
-  (let [the-overall-status (name (calc-overall-status check-results last-check refresh-frequency))]
-    [:a {:href (str endpoint "/overview")}
-     [:div {:class (str "overall-status-page " the-overall-status)}
-      the-overall-status]]))
 
-(defn render-overall-status [check-results last-check xray-config]
-  (hc/html5
-    [:head
-     [:meta {:charset "utf-8"}]
-     [:meta {:http-equiv "refresh" :content (/ (:refresh-frequency xray-config) 1000)}]
-     [:title "XRayCheck Results"]
-     (hc/include-css "/stylesheets/base.css" "/stylesheets/overall-status.css")
-     (when (io/resource "public/stylesheets/custom.css")
-       (hc/include-css "/stylesheets/custom.css"))]
-    [:body
-     [:header
-      [:h1 "XRayCheck Overall-Status"]
-      [:span {:class "last-check"}
-       [:h2 "Last check: " (utils/readable-timestamp @last-check)]]]
-     (render-overall-status-container check-results last-check xray-config)]))
+(defn render-overall-status [check-results last-check {:keys [refresh-frequency endpoint]}]
+  (let [overall-status (name (calc-overall-status check-results last-check refresh-frequency))]
+    (hc/html5
+      [:head
+       [:meta {:charset "utf-8"}]
+       [:meta {:http-equiv "refresh" :content (/ refresh-frequency 1000)}]
+       [:title "XRayCheck Results"]
+       (hc/include-css "/stylesheets/base.css" "/stylesheets/overall-status.css")
+       (when (io/resource "public/stylesheets/custom.css")
+         (hc/include-css "/stylesheets/custom.css"))]
+      [:body
+       [:div {:class "overall-status-page-headline"}
+        [:p "Last check: " (utils/readable-timestamp @last-check)]]
+
+       [:a {:href (str endpoint "/overview")}
+        [:div {:class (str "overall-status-page " overall-status)}
+         [:div (.toUpperCase overall-status)]]]])))
