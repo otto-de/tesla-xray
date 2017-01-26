@@ -8,7 +8,7 @@
                  [hiccup "1.0.5"]
                  [ring/ring-codec "1.0.1"]
                  [org.clojure/data.xml "0.0.8"]
-                 [clj-time "0.12.0"]]
+                 [clj-time "0.13.0"]]
   :test-paths ["test" "test-resources"]
   :lein-release {:deploy-via :clojars}
   :profiles {:dev {:plugins      [[lein-ancient "0.6.10"][lein-release/lein-release "1.0.9"]]
@@ -17,5 +17,5 @@
                    :dependencies [[me.lomin/component-restart "0.1.1"]
                                   [de.otto/tesla-jetty "0.1.3"]
                                   [ring-mock "0.1.5"]
-                                  [ch.qos.logback/logback-classic "1.1.7"]
-                                  [clj-cctray "0.8.0"]]}})
+                                  [ch.qos.logback/logback-classic "1.1.9"]
+                                  [clj-cctray "0.10.0"]]}})
