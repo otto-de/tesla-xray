@@ -1,79 +1,65 @@
 (ns de.otto.tesla.xray.ui.detail-page
-  (:require [hiccup.page :as hc]
-            [de.otto.tesla.xray.ui.env-overview :as eo]
+  (:require [de.otto.tesla.xray.ui.env-overview :as eo]
             [de.otto.tesla.xray.util.utils :as utils]
-            [de.otto.tesla.xray.ui.svg :as svg]
-            [clojure.java.io :as io]))
+            [de.otto.tesla.xray.ui.layout :as layout]))
+
+(defn time-left [end-time]
+  (let [millis (max (- end-time (System/currentTimeMillis)) 0)
+        seconds (int (mod (/ millis 1000) 60))
+        minutes (int (mod (/ millis (* 1000 60)) 60))
+        hours (int (mod (/ millis (* 1000 60 60)) 24))]
+    (format "%sh %smin %ssec" hours minutes seconds)))
+
+(defn ack-form [endpoint check-name current-env acknowledge-hours-to-expire]
+  [:form {:method "POST" :data-method "POST" :action (str endpoint "/acknowledged-checks") :id "set-ack"}
+   [:div [:span.label "Set acknowlegment for some hours:"]]
+   [:input {:type "number" :name "hours" :value acknowledge-hours-to-expire}]
+   [:input {:type "hidden" :name "check-name" :value check-name}]
+   [:input {:type "hidden" :name "environment" :value current-env}]
+   [:input {:type "submit" :value "ack"}]])
+
+(defn del-form [endpoint check-name current-env]
+  [:form {:data-method "DELETE" :action (str endpoint "/acknowledged-checks/" check-name "/" current-env) :id "del-ack"}
+   [:div [:span.label "Reset acknowlegment:"]]
+   [:input {:type "submit" :value "reset"}]])
+
+(defn acknowledge-section [acknowledged-checks acknowledge-hours-to-expire endpoint check-name current-env]
+  (let [end-time (get-in @acknowledged-checks [check-name current-env])]
+    [:section.acknowledge
+     [:header "Acknowledgement"]
+     
+     (if end-time
+       [:div
+        [:div
+         [:span.label "active since:"]
+         [:span.value (utils/readable-timestamp end-time)]]
+        [:div 
+         [:span.label "time left:"]
+         [:span.value (time-left end-time)]]]
+       [:div
+        [:span.value "Not acknowlegded"]])
+
+     (if end-time 
+       (del-form endpoint check-name current-env)
+       (ack-form endpoint check-name current-env acknowledge-hours-to-expire))]))
 
 (defn rendered-check-results [check-results acknowledged-checks {:keys [max-check-history endpoint acknowledge-hours-to-expire]} check-name current-env]
   (let [show-links false]
-    [:div {:class "detail-page-container"}
-     [:div {:class "chkmenu"}
-
-      [:div {:class "chkmenu-header"}
-       "Acknowledgement"]
-
-      [:div {:class (str "chkmenuitem-row " (if (get-in @acknowledged-checks [check-name current-env]) "ackstatus-active" "ackstatus-inactive"))
-             :style "text-align: center;"}
-       (svg/done-icon)]
-
-      [:div {:class "chkmenuitem-row"}
-       [:div {:class "chkmenuitem-centered-text"}
-        [:p
-         (if-let [end-time (get-in @acknowledged-checks [check-name current-env])]
-           (utils/readable-timestamp end-time)
-           "not set")]]]
-
-      [:div {:class "chkmenuitem-row"}
-       [:div {:class "chkmenuitem-centered-text"}
-        [:p
-         (if-let [end-time (get-in @acknowledged-checks [check-name current-env])]
-           (let [millis (max (- end-time (System/currentTimeMillis)) 0)
-                 seconds (int (mod (/ millis 1000) 60))
-                 minutes (int (mod (/ millis (* 1000 60)) 60))
-                 hours (int (mod (/ millis (* 1000 60 60)) 24))]
-             (format "%sh %smin %ssec left" hours minutes seconds))
-           "not set")]]]
-
-      [:div {:class "chkmenuitem-row"}
-       [:div {:class "acknowledgement-input"
-              :id    "acknowledgement-input-value"
-              :style "width: 40%"}
-        acknowledge-hours-to-expire]
-
-       [:div {:class   "acknowledgement-button"
-              :style   "width: 20%;"
-              :onClick "onAcknowledgementDecrease()"}
-        (svg/down-icon)]
-
-       [:div {:class   "acknowledgement-button"
-              :style   "width: 20%;"
-              :onClick "onAcknowledgementIncrease()"}
-        (svg/up-icon)]
-
-       [:div {:class   "acknowledgement-button"
-              :style   "width: 20%;"
-              :onClick (str "onAcknowledgementClick(\"" endpoint "\", \"" check-name "\", \"" current-env "\")")}
-        (svg/submit-icon)]]]
-     [:div {:class "single-check-results"}
-      (eo/render-results-for-env 1 max-check-history check-name endpoint show-links [current-env check-results])]]))
+    [:section.checks
+     [:article.check
+      (acknowledge-section acknowledged-checks acknowledge-hours-to-expire endpoint check-name current-env)
+      [:div.results
+       (eo/render-results-for-env max-check-history check-name endpoint show-links [current-env check-results])]]]))
 
 (defn detail-page-content [check-results acknowledged-checks xray-conf check-name current-env]
   (if-let [check-results (get-in @check-results [check-name current-env])]
     (rendered-check-results check-results acknowledged-checks xray-conf check-name current-env)
-    [:div {:class "detail-page-container"} "NO DATA FOUND"]))
+    [:div "NO DATA FOUND"]))
 
 (defn render-detail-page [check-results acknowledged-checks {:keys [endpoint refresh-frequency] :as xray-config} check-name current-env]
-  (hc/html5
-    [:head
-     [:meta {:charset "utf-8"}]
-     [:meta {:http-equiv "refresh" :content (/ refresh-frequency 1000)}]
-     [:title "XRayCheck Results"]
-     (hc/include-js "/js/main.js")
-     (hc/include-css "/stylesheets/base.css" "/stylesheets/detail-page.css")
-     (when (io/resource "public/stylesheets/custom.css")
-       (hc/include-css "/stylesheets/custom.css"))]
-    [:body
-     [:header
-      [:h1 [:a {:class "index-link" :href (str endpoint "/overview")} "<-"] check-name]]
-     (detail-page-content check-results acknowledged-checks xray-config check-name current-env)]))
+  (layout/page refresh-frequency
+               [:body.detail
+                [:header
+                 [:a.back {:href (str endpoint "/overview")} "< back"]
+                 [:h1 check-name]]
+                (detail-page-content check-results acknowledged-checks xray-config check-name current-env)]))

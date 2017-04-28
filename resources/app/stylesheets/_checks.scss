@@ -1,0 +1,50 @@
+
+.status.ok {
+  background: #27ae60;
+  color: #2ecc71;
+}
+
+.status.warning {
+  background: #f39c12;
+  color: #f1c40f;
+}
+
+.status.error {
+  background: #c0392b;
+  color: #e74c3c;
+}
+
+.status.acknowledged {
+  background: #2980b9;
+  color: #3498db;
+}
+
+section.checks {
+  .check {
+    & > header {
+      color: rgba(255, 255, 255, 0.5);
+      margin-top: 1em;
+    }
+
+    .results {
+      display: flex;
+
+      .env-result {
+        flex: 1 1 100%;
+        margin: 0 2px;
+        padding: 5px;
+
+        header {
+          color: rgba(0, 0, 0, 0.5);
+          padding: 0;
+          margin: 0;
+        }
+      }
+
+      a {
+        text-decoration: none;
+        color: inherit;
+      }
+    }
+  }
+}

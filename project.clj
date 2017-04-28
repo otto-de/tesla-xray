@@ -1,4 +1,4 @@
-(defproject de.otto/tesla-xray "0.5.3-SNAPSHOT"
+(defproject de.otto/tesla-xray "0.6.0-SNAPSHOT"
   :description "a component to execute and visualize checks written in clj"
   :url "https://github.com/otto-de/tesla-xray.git"
   :license {:name "Apache License 2.0"
@@ -11,8 +11,12 @@
                  [clj-time "0.13.0"]]
   :test-paths ["test" "test-resources"]
   :lein-release {:deploy-via :clojars}
-  :profiles {:dev {:plugins      [[lein-ancient "0.6.10"][lein-release/lein-release "1.0.9"]]
-                  :main de.otto.tesla.xray.testsystem
+  :sass {:src "resources/app/stylesheets/"
+         :dst "resources/public/stylesheets/"}
+  :profiles {:dev {:plugins      [[lein-sassy "1.0.8"]
+                                  [lein-ancient "0.6.10"]
+                                  [lein-release/lein-release "1.0.9"]]
+                   :main         de.otto.tesla.xray.testsystem
                    :source-paths ["src" "test"]
                    :dependencies [[me.lomin/component-restart "0.1.1"]
                                   [de.otto/tesla-jetty "0.1.3"]

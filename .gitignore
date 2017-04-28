@@ -6,7 +6,9 @@ pom.xml.asc
 *.jar
 *.class
 *.out
+.sass-cache
 /.lein-*
 /.nrepl-port
 /.idea
 *iml
+resources/public/stylesheets/*

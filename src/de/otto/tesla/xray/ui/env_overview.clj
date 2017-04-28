@@ -1,36 +1,28 @@
 (ns de.otto.tesla.xray.ui.env-overview
-  (:require [hiccup.page :as hc]
-            [ring.util.codec :as co]
+  (:require [ring.util.codec :as co]
             [de.otto.tesla.xray.ui.overall-status :as os]
             [de.otto.tesla.xray.util.utils :as utils]
-            [clojure.java.io :as io]))
+            [de.otto.tesla.xray.ui.layout :as layout]))
 
 (defn- single-check-result-as-html [{:keys [status message time-taken stop-time]}]
   (let [stop-time-str (or (utils/readable-timestamp stop-time) "")
         text (str stop-time-str " tt:" time-taken " " message)]
-    [:div {:class (name status)} text]))
+    [:div.result.status {:class (name status)} text]))
 
-(defn wrapped-with-links-to-detail-page [the-html show-links? endpoint check-name current-env]
+(defn link-to-detail-page [show-links? endpoint check-name current-env the-html]
   (let [url-ecoded-check-name (co/url-encode check-name)
         url-encoded-env (co/url-encode current-env)]
     (if show-links?
       [:a {:href (str endpoint "/detail/" url-ecoded-check-name "/" url-encoded-env)} the-html]
       the-html)))
 
-(defn render-results-for-env
-  [total-cols nr-checks-displayed checkname endpoint show-links? [env {:keys [results overall-status]}]]
-  (let [width (int (/ 97 total-cols))
-        padding (int (/ 3 total-cols))
-        should-show-links? (and
-                             (not (= overall-status :none))
-                             show-links?)]
-    (-> [:div {:class "env-results-container"
-               :style (str "width: " width "%;"
-                           (when (> total-cols 1) (str " padding-left:" padding "% ;")))}
-         [:div {:class (str "overall-" (name overall-status))}
-          [:div {:class (str "env-header " (name overall-status))} env]
-          (map single-check-result-as-html (take nr-checks-displayed results))]]
-        (wrapped-with-links-to-detail-page should-show-links? endpoint checkname env))))
+(defn render-results-for-env [nr-checks-displayed checkname endpoint show-links? [env {:keys [results overall-status]}]]
+  (let [should-show-links? (and (not (= overall-status :none)) show-links?)]
+    [:div.env-result.status {:class (name overall-status)}
+     (link-to-detail-page should-show-links? endpoint checkname env
+                          [:div
+                           [:header env]
+                           (map single-check-result-as-html (take nr-checks-displayed results))])]))
 
 (defn- sort-results-by-env [results-for-env environments]
   (sort-by (fn [[env _]] (.indexOf environments env)) results-for-env))
@@ -38,27 +30,21 @@
 (defn- check-results-as-html [{:keys [environments nr-checks-displayed endpoint]} [checkname results-for-env]]
   (let [show-links true
         sorted-results (sort-results-by-env results-for-env environments)]
-    [:div {:class "check-results-row"}
-     [:div {:class "check-header"} checkname]
-     (map (partial render-results-for-env (count results-for-env) nr-checks-displayed checkname endpoint show-links) sorted-results)]))
+    [:article.check
+     [:header checkname]
+     [:div.results
+      (map (partial render-results-for-env nr-checks-displayed checkname endpoint show-links) sorted-results)]]))
 
 (defn render-env-overview [check-results last-check {:keys [endpoint refresh-frequency] :as xray-config}]
-  (let [the-overall-status (name (os/calc-overall-status check-results last-check refresh-frequency))]
-    (hc/html5
-      [:head
-       [:meta {:charset "utf-8"}]
-       [:meta {:http-equiv "refresh" :content (/ refresh-frequency 1000)}]
-       [:title "XRayCheck Results"]
-       (hc/include-css "/stylesheets/base.css" "/stylesheets/overview.css" "/stylesheets/overall-status.css")
-       (when (io/resource "public/stylesheets/custom.css")
-         (hc/include-css "/stylesheets/custom.css"))]
-      [:body
-       [:div {:class "overall-status-page-headline small"}
-        [:p [:a {:style "text-decoration: none; color: white;" :href endpoint} "<"]
-         " Last check: " (utils/readable-timestamp @last-check)]]
+  (let [overall-status (name (os/calc-overall-status check-results last-check refresh-frequency))]
+    (layout/page refresh-frequency
+                 [:body.overview
+                  [:header
+                   [:a.back {:href endpoint} "< back"]
+                   "Last check: " (utils/readable-timestamp @last-check)]
 
-       [:div {:class (str "overall-status-page small " the-overall-status)}
-        [:div (.toUpperCase the-overall-status)]]
+                  [:section {:class (str "status " overall-status)}
+                   overall-status]
 
-       [:div {:class (str "overview-container overall-status-" the-overall-status)}
-        (map (partial check-results-as-html xray-config) @check-results)]])))
+                  [:section.checks
+                   (map (partial check-results-as-html xray-config) @check-results)]])))

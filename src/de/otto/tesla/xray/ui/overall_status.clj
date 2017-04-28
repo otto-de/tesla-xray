@@ -1,7 +1,6 @@
 (ns de.otto.tesla.xray.ui.overall-status
-  (:require [hiccup.page :as hc]
-            [de.otto.tesla.xray.util.utils :as utils]
-            [clojure.java.io :as io]))
+  (:require [de.otto.tesla.xray.ui.layout :as layout]
+            [de.otto.tesla.xray.util.utils :as utils]))
 
 (defn- flat-results [check-results]
   (mapcat vals (vals @check-results)))
@@ -23,18 +22,11 @@
 
 (defn render-overall-status [check-results last-check {:keys [refresh-frequency endpoint]}]
   (let [overall-status (name (calc-overall-status check-results last-check refresh-frequency))]
-    (hc/html5
-      [:head
-       [:meta {:charset "utf-8"}]
-       [:meta {:http-equiv "refresh" :content (/ refresh-frequency 1000)}]
-       [:title "XRayCheck Results"]
-       (hc/include-css "/stylesheets/base.css" "/stylesheets/overall-status.css")
-       (when (io/resource "public/stylesheets/custom.css")
-         (hc/include-css "/stylesheets/custom.css"))]
-      [:body
-       [:div {:class "overall-status-page-headline big"}
-        [:p "Last check: " (utils/readable-timestamp @last-check)]]
+    (layout/page refresh-frequency
+      [:body.overall
+       [:header
+        "Last check: " (utils/readable-timestamp @last-check)]
 
        [:a {:href (str endpoint "/overview")}
-        [:div {:class (str "overall-status-page big " overall-status)}
-         [:div (.toUpperCase overall-status)]]]])))
+        [:section {:class (str "status " overall-status)}
+         overall-status]]])))
