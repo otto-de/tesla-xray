@@ -9,17 +9,17 @@
         text (str stop-time-str " tt:" time-taken " " message)]
     [:div.result.status {:class (name status)} text]))
 
-(defn link-to-detail-page [show-links? endpoint check-name current-env the-html]
-  (let [url-ecoded-check-name (co/url-encode check-name)
+(defn link-to-detail-page [show-links? endpoint check-id current-env the-html]
+  (let [url-ecoded-check-id (co/url-encode check-id)
         url-encoded-env (co/url-encode current-env)]
     (if show-links?
-      [:a {:href (str endpoint "/detail/" url-ecoded-check-name "/" url-encoded-env)} the-html]
+      [:a {:href (str endpoint "/detail/" url-ecoded-check-id "/" url-encoded-env)} the-html]
       the-html)))
 
-(defn render-results-for-env [nr-checks-displayed checkname endpoint show-links? [env {:keys [results overall-status]}]]
+(defn render-results-for-env [nr-checks-displayed check-id endpoint show-links? [env {:keys [results overall-status]}]]
   (let [should-show-links? (and (not (= overall-status :none)) show-links?)]
     [:div.env-result.status {:class (name overall-status)}
-     (link-to-detail-page should-show-links? endpoint checkname env
+     (link-to-detail-page should-show-links? endpoint check-id env
                           [:div
                            [:header env]
                            (map single-check-result-as-html (take nr-checks-displayed results))])]))
@@ -27,13 +27,13 @@
 (defn- sort-results-by-env [results-for-env environments]
   (sort-by (fn [[env _]] (.indexOf environments env)) results-for-env))
 
-(defn- check-results-as-html [{:keys [environments nr-checks-displayed endpoint]} [checkname results-for-env]]
+(defn- check-results-as-html [{:keys [environments nr-checks-displayed endpoint]} [check-id results-for-env]]
   (let [show-links true
         sorted-results (sort-results-by-env results-for-env environments)]
     [:article.check
-     [:header checkname]
+     [:header check-id]
      [:div.results
-      (map (partial render-results-for-env nr-checks-displayed checkname endpoint show-links) sorted-results)]]))
+      (map (partial render-results-for-env nr-checks-displayed check-id endpoint show-links) sorted-results)]]))
 
 (defn render-env-overview [check-results last-check {:keys [endpoint refresh-frequency] :as xray-config}]
   (let [overall-status (name (os/calc-overall-status check-results last-check refresh-frequency))]

@@ -158,7 +158,7 @@
                  @(:check-results xray-checker)))
 
           ;ACKNOWLEDGE!
-          (is (= 204 (-> (handler-fn (mock/request :post (str "/xray-checker/acknowledged-checks?check-name=ErrorCheck&environment=dev&hours=" acknowledge-hours)))
+          (is (= 204 (-> (handler-fn (mock/request :post (str "/xray-checker/acknowledged-checks?check-id=ErrorCheck&environment=dev&hours=" acknowledge-hours)))
                          :status)))
           ;acknowledged results
           (start-the-xraychecks xray-checker)
@@ -185,7 +185,7 @@
       (try
         (with-redefs [utils/current-time (constantly start-time)]
           ;ACKNOWLEDGE!
-          (is (= 204 (-> (handler-fn (mock/request :post (str "/xray-checker/acknowledged-checks?check-name=ErrorCheck&environment=dev&hours=" acknowledge-hours)))
+          (is (= 204 (-> (handler-fn (mock/request :post (str "/xray-checker/acknowledged-checks?check-id=ErrorCheck&environment=dev&hours=" acknowledge-hours)))
                          :status)))
           ;acknowledged results
           (start-the-xraychecks xray-checker)
@@ -219,7 +219,7 @@
       (try
         (with-redefs [utils/current-time (constantly start-time)]
           ;ACKNOWLEDGE!
-          (is (= 204 (-> (handler-fn (mock/request :post (str "/xray-checker/acknowledged-checks?check-name=ErrorCheck&environment=dev&hours=" acknowledge-hours)))
+          (is (= 204 (-> (handler-fn (mock/request :post (str "/xray-checker/acknowledged-checks?check-id=ErrorCheck&environment=dev&hours=" acknowledge-hours)))
                          :status)))
           (is (= {"ErrorCheck" {"dev" (+ acknowledge-hours-in-millis start-time)}} @(:acknowledged-checks xray-checker)))
           ;DELETE ACKNOWLEDGEMENT!
@@ -351,14 +351,14 @@
       (chkr/remove-acknowledgement! acknowledged-checks "checkToBeRemoved" "dropEnv")
       (is (= {"checkToBeRemoved" {"keepEnv" 100}} @acknowledged-checks)))))
 
-(def build-check-name-env-vecs #'chkr/build-check-name-env-vecs)
+(def build-check-id-env-vecs #'chkr/build-check-id-env-vecs)
 (deftest building-parameters-for-futures
   (testing "should build a propper parameter vector for all checks"
     (let [check-a (chkr/->RegisteredXRayCheck "A" "A" "A")
           check-b (chkr/->RegisteredXRayCheck "B" "B" "B")]
       (is (= [[check-a "dev"] [check-a "test"]
               [check-b "dev"] [check-b "test"]]
-             (build-check-name-env-vecs ["dev" "test"] {"CheckA" check-a
+             (build-check-id-env-vecs ["dev" "test"] {"CheckA" check-a
                                                         "CheckB" check-b}))))))
 
 

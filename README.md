@@ -52,10 +52,10 @@ Add a xray-checker to your system:
 (defn- default-strategy [results]
   (:status (first results)))
   
-(defn- alerting-fn [{:keys [last-result overall-status check-name env]}]
+(defn- alerting-fn [{:keys [last-result overall-status check-id env]}]
   (let [{:keys [status message time-taken stop-time]} last-result]
     
-    (log/info "ALERT: " check-name " has status " overall-status " on "  env " at " stop-time " after " time-taken "ms. message was: " message)))
+    (log/info "ALERT: " check-id " has status " overall-status " on "  env " at " stop-time " after " time-taken "ms. message was: " message)))
 
 (defrecord YourCheck [xraychecker]
   component/Lifecycle
@@ -73,20 +73,20 @@ Add a xray-checker to your system:
       (if what-ever-you-like-to-check-is-an-error?
         (check/->XRayCheckResult :error "I found an error")
         (check/->XRayCheckResult :ok "Fromage")))))
-```	
+```
 
 ## Configuration
 These are the currently supported properties:
 ```clojure
 {
-	:yourchecker-check-environments "env1;env2;env3" ;the envs where you want to execute your checks
-	:yourchecker-check-frequency "60000" ;schedule for executing the checks in ms (execution is done in parallel)
-	:yourchecker-check-endpoint "/xray-checker" ;where the ui shows up
-	:yourchecker-max-check-history "100" ;nr of checks to keep (in memory)
-	:yourchecker-nr-checks-displayed "5" ;nr checks to be diplayed for a check/env on /xray-checker/overview
-	:yourchecker-acknowledge-hours-to-expire 1 ;time for acknowledgements in hours, default is 24 (one day)
+    :yourchecker-check-environments "env1;env2;env3" ;the envs where you want to execute your checks
+    :yourchecker-check-frequency "60000" ;schedule for executing the checks in ms (execution is done in parallel)
+    :yourchecker-check-endpoint "/xray-checker" ;where the ui shows up
+    :yourchecker-max-check-history "100" ;nr of checks to keep (in memory)
+    :yourchecker-nr-checks-displayed "5" ;nr checks to be diplayed for a check/env on /xray-checker/overview
+    :yourchecker-acknowledge-hours-to-expire 1 ;time for acknowledgements in hours, default is 24 (one day)
 }
-```			
+```
 
 ## Acknowledgement
 
@@ -96,10 +96,10 @@ You are able to acknowledge checks that have an error by clicking on the check h
 Endpoints for acknowledgement:
 * `/acknowledged-checks` GET: show all acknowledged checks and their expiration time
 * `/acknowledged-checks` POST: set new acknowledgement, parameters are: 
-    * `check-name` name of check to acknowledge
+    * `check-id` name of check to acknowledge
     * `environment` in which environment the check should be acknowledged
     *   `hours` acknowledgement time (in hours)
-* `/acknowledged-checks/<check-name>/<environment>` DELETE: delete acknowledgement for the check and environment specified in url
+* `/acknowledged-checks/<check-id>/<environment>` DELETE: delete acknowledgement for the check and environment specified in url
 
 
 ## UI

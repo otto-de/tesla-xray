@@ -3,6 +3,7 @@
             [overtone.at-at :as at]
             [clojure.tools.logging :as log]
             [compojure.core :as comp]
+            [clojure.string :as cs]
             [de.otto.tesla.xray.ui.detail-page :as dp]
             [de.otto.tesla.xray.ui.env-overview :as eo]
             [de.otto.tesla.xray.ui.overall-status :as oas]
@@ -25,27 +26,27 @@
 
 (defprotocol XRayCheckerProtocol
   (set-alerting-function [self alerting-fn])
-  (register-check [self check checkname])
-  (register-check-with-strategy [self check checkname strategy]))
+  (register-check [self check check-id])
+  (register-check-with-strategy [self check check-id strategy]))
 
-(defrecord RegisteredXRayCheck [check check-name strategy]
+(defrecord RegisteredXRayCheck [check check-id strategy]
   chk/XRayCheck
   (start-check [_ env]
     (chk/start-check check env)))
 
-(defn send-alerts! [alerting-function check-name current-env results overall-status]
+(defn send-alerts! [alerting-function check-id current-env results overall-status]
   (try
     (alerting-function {:last-result    (first results)
                         :overall-status overall-status
-                        :check-name     check-name
+                        :check-id     check-id
                         :env            current-env})
     (catch Exception e
       (log/error e "Error when calling alerting function"))))
 
-(defn do-alerting! [alerting-fn check-results check-name current-env overall-status]
+(defn do-alerting! [alerting-fn check-results check-id current-env overall-status]
   (when-let [alerting-function @alerting-fn]
-    (let [results (get-in @check-results [check-name current-env :results])]
-      (send-alerts! alerting-function check-name current-env results overall-status))))
+    (let [results (get-in @check-results [check-id current-env :results])]
+      (send-alerts! alerting-function check-id current-env results overall-status))))
 
 (defn- append-result [old-results result max-check-history]
   (let [limited-results (take (dec max-check-history) old-results)]
@@ -60,21 +61,21 @@
     (nil? overall-status)
     (not= :ok new-overall-status)))
 
-(defn- update-results! [{:keys [alerting-fn check-results xray-config acknowledged-checks]} {:keys [check-name strategy]} current-env result]
+(defn- update-results! [{:keys [alerting-fn check-results xray-config acknowledged-checks]} {:keys [check-id strategy]} current-env result]
   (let [{:keys [max-check-history]} xray-config
-        {:keys [results overall-status]} (get-in @check-results [check-name current-env])
-        acknowledged? (contains? (get @acknowledged-checks check-name) current-env)
+        {:keys [results overall-status]} (get-in @check-results [check-id current-env])
+        acknowledged? (contains? (get @acknowledged-checks check-id) current-env)
         enriched-result (if acknowledged?
                           (assoc result :status :acknowledged :message (str (:message result) "; Acknowledged"))
                           result)
         new-results (append-result results enriched-result max-check-history)
         new-overall-status (if acknowledged? :acknowledged (strategy new-results))]
-    (swap! check-results assoc-in [check-name current-env :results] new-results)
-    (swap! check-results assoc-in [check-name current-env :overall-status] new-overall-status)
+    (swap! check-results assoc-in [check-id current-env :results] new-results)
+    (swap! check-results assoc-in [check-id current-env :overall-status] new-overall-status)
     (when (or
             (existing-status-has-changed? overall-status new-overall-status)
             (initial-status-is-failure? overall-status new-overall-status))
-      (do-alerting! alerting-fn check-results check-name current-env new-overall-status))))
+      (do-alerting! alerting-fn check-results check-id current-env new-overall-status))))
 
 (defn- check-result [xray-check current-env]
   (try
@@ -82,7 +83,7 @@
       (chk/start-check xray-check current-env)
       (chk/->XRayCheckResult :warning "no xray-result returned by check"))
     (catch Throwable t
-      (log/info t "Exception thrown in check " (:check-name xray-check))
+      (log/info t "Exception thrown in check " (:check-id xray-check))
       (chk/->XRayCheckResult :error (.getMessage t)))))
 
 (defn- check-result-with-timings [[^RegisteredXRayCheck xray-check current-env]]
@@ -91,17 +92,17 @@
         stop-time (utils/current-time)]
     (chk/with-timings check-result (- stop-time start-time) stop-time)))
 
-(defn- build-check-name-env-vecs [environments registered-checks]
+(defn- build-check-id-env-vecs [environments registered-checks]
   (for [check (vals registered-checks)
         environment environments]
     [check environment]))
 
-(defn- timeout-response [check-name timeout]
-  (chk/->XRayCheckResult :error (str check-name " did not finish in " timeout " ms") timeout (utils/current-time)))
+(defn- timeout-response [check-id timeout]
+  (chk/->XRayCheckResult :error (str check-id " did not finish in " timeout " ms") timeout (utils/current-time)))
 
 (defn- entry-with-started-future [timeout check+env]
-  (let [check-name (:check-name (first check+env))
-        fallback (timeout-response check-name timeout)
+  (let [check-id (:check-id (first check+env))
+        fallback (timeout-response check-id timeout)
         started-check-future (future (utils/execute-with-timeout timeout fallback (check-result-with-timings check+env)))]
     [check+env started-check-future]))
 
@@ -113,9 +114,9 @@
 (defn acknowledgement-active? [[_ end-time]]
   (> end-time (utils/current-time)))
 
-(defn with-cleared-acknowledgement-entry [new-state [check-name env-acknowledgements]]
+(defn with-cleared-acknowledgement-entry [new-state [check-id env-acknowledgements]]
   (if-let [filtered (seq (filter acknowledgement-active? env-acknowledgements))]
-    (assoc new-state check-name (into {} filtered))
+    (assoc new-state check-id (into {} filtered))
     new-state))
 
 (defn clear-outdated-acknowledgements! [{:keys [acknowledged-checks]}]
@@ -124,7 +125,7 @@
 (defn- start-the-xraychecks [{:keys [last-check registered-checks xray-config] :as self}]
   (try
     (clear-outdated-acknowledgements! self)
-    (let [checks+env (build-check-name-env-vecs (:environments xray-config) @registered-checks)
+    (let [checks+env (build-check-id-env-vecs (:environments xray-config) @registered-checks)
           checks+env-to-futures (build-future-map xray-config checks+env)]
       (doseq [[[^RegisteredXRayCheck xray-check current-env] f] checks+env-to-futures]
         (update-results! self xray-check current-env (deref f)))
@@ -132,13 +133,13 @@
     (catch Exception e
       (log/error e "caught error when trying to start the xraychecks"))))
 
-(defn acknowledge-check! [check-results acknowledged-checks check-name environment duration-in-hours]
+(defn acknowledge-check! [check-results acknowledged-checks check-id environment duration-in-hours]
   (let [duration-in-ms (* 60 60 1000 (Long/parseLong duration-in-hours))]
-    (swap! acknowledged-checks assoc-in [check-name environment] (+ duration-in-ms (utils/current-time)))
-    (swap! check-results assoc-in [check-name environment :overall-status] :acknowledged)))
+    (swap! acknowledged-checks assoc-in [check-id environment] (+ duration-in-ms (utils/current-time)))
+    (swap! check-results assoc-in [check-id environment :overall-status] :acknowledged)))
 
-(defn remove-acknowledgement! [acknowledged-checks check-name environment]
-  (swap! acknowledged-checks update check-name dissoc environment)
+(defn remove-acknowledgement! [acknowledged-checks check-id environment]
+  (swap! acknowledged-checks update check-id dissoc environment)
   (swap! acknowledged-checks (fn [x] (into {} (filter #(not-empty (second %)) x)))))
 
 (defn as-date-time [millis]
@@ -155,11 +156,11 @@
     (json/write-str @acknowledged-checks :value-fn format-time)))
 
 (defn render-results-xml [check-results]
-  (for [[check-name env-to-data] @check-results]
+  (for [[check-id env-to-data] @check-results]
     (for [[env {results :results overall-status :overall-status}] env-to-data]
       (let [^XRayCheckResult result (first results)
             date-time-string (tformat/unparse (tformat/formatters :date-time) (DateTime. (:stop-time result)))]
-        (xml/element :Project {:name            (str check-name " on " env)
+        (xml/element :Project {:name            (str check-id " on " env)
                                :last-build-time date-time-string
                                :lastBuildStatus (str overall-status)} [])))))
 
@@ -183,24 +184,24 @@
            :headers {"Content-Type" "text/html"}
            :body    (eo/render-env-overview check-results last-check xray-config)})
 
-        (comp/GET (str endpoint "/detail/:check-name/:environment") [check-name environment]
+        (comp/GET (str endpoint "/detail/:check-id/:environment") [check-id environment]
           {:status  200
            :headers {"Content-Type" "text/html"}
-           :body    (dp/render-detail-page check-results acknowledged-checks xray-config check-name environment)})
+           :body    (dp/render-detail-page check-results acknowledged-checks xray-config check-id environment)})
 
         (comp/GET (str endpoint "/acknowledged-checks") []
           {:status  200
            :headers {"Content-Type" "application/json"}
            :body    (stringify-acknowledged-checks acknowledged-checks)})
 
-        (comp/POST (str endpoint "/acknowledged-checks") [check-name environment hours]
-          (acknowledge-check! check-results acknowledged-checks check-name environment hours)
+        (comp/POST (str endpoint "/acknowledged-checks") [check-id environment hours]
+          (acknowledge-check! check-results acknowledged-checks check-id environment hours)
           {:status  204
            :headers {"Content-Type" "text/plain"}
            :body    ""})
 
-        (comp/DELETE (str endpoint "/acknowledged-checks/:check-name/:environment") [check-name environment]
-          (remove-acknowledgement! acknowledged-checks check-name environment)
+        (comp/DELETE (str endpoint "/acknowledged-checks/:check-id/:environment") [check-id environment]
+          (remove-acknowledgement! acknowledged-checks check-id environment)
           {:status  204
            :headers {"Content-Type" "text/plain"}
            :body    ""})
@@ -212,6 +213,9 @@
 
 (defn default-strategy [results]
   (:status (first results)))
+
+(defn cleanup-id [name]
+  (cs/replace name #"\W" ""))
 
 (defrecord XrayChecker [which-checker scheduler handler config registered-checks]
   c/Lifecycle
@@ -244,12 +248,13 @@
   (set-alerting-function [{:keys [alerting-fn]} new-alerting-fn]
     (reset! alerting-fn new-alerting-fn))
 
-  (register-check [self check checkname]
-    (register-check-with-strategy self check checkname default-strategy))
+  (register-check [self check check-id]
+    (register-check-with-strategy self check (cleanup-id check-id) default-strategy))
 
-  (register-check-with-strategy [self check checkname strategy]
-    (log/info "registering check with name: " checkname)
-    (swap! (:registered-checks self) assoc checkname (->RegisteredXRayCheck check checkname strategy))))
+  (register-check-with-strategy [self check check-id strategy]
+    (log/info "registering check with id: " check-id)
+    (let [cleaned-id (cleanup-id check-id)]
+      (swap! (:registered-checks self) assoc cleaned-id (->RegisteredXRayCheck check cleaned-id strategy)))))
 
 (defn new-xraychecker [which-checker]
   (map->XrayChecker {:which-checker which-checker}))

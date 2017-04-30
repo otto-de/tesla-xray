@@ -15,10 +15,10 @@
     2 (chk/->XRayCheckResult :warning "warning")
     3 (chk/->XRayCheckResult :acknowledged "acknowledged")))
 
-(defrecord Check [check-name]
+(defrecord Check [check-id]
   c/Lifecycle
   (start [self]
-    (chkr/register-check (:rt-checker self) self check-name)
+    (chkr/register-check (:rt-checker self) self check-id)
     self)
   (stop [self] self)
 

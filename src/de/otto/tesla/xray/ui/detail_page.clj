@@ -10,21 +10,21 @@
         hours (int (mod (/ millis (* 1000 60 60)) 24))]
     (format "%sh %smin %ssec" hours minutes seconds)))
 
-(defn ack-form [endpoint check-name current-env acknowledge-hours-to-expire]
+(defn ack-form [endpoint check-id current-env acknowledge-hours-to-expire]
   [:form {:method "POST" :data-method "POST" :action (str endpoint "/acknowledged-checks") :id "set-ack"}
    [:div [:span.label "Set acknowlegment for some hours:"]]
    [:input {:type "number" :name "hours" :value acknowledge-hours-to-expire}]
-   [:input {:type "hidden" :name "check-name" :value check-name}]
+   [:input {:type "hidden" :name "check-id" :value check-id}]
    [:input {:type "hidden" :name "environment" :value current-env}]
    [:input {:type "submit" :value "ack"}]])
 
-(defn del-form [endpoint check-name current-env]
-  [:form {:data-method "DELETE" :action (str endpoint "/acknowledged-checks/" check-name "/" current-env) :id "del-ack"}
+(defn del-form [endpoint check-id current-env]
+  [:form {:data-method "DELETE" :action (str endpoint "/acknowledged-checks/" check-id "/" current-env) :id "del-ack"}
    [:div [:span.label "Reset acknowlegment:"]]
    [:input {:type "submit" :value "reset"}]])
 
-(defn acknowledge-section [acknowledged-checks acknowledge-hours-to-expire endpoint check-name current-env]
-  (let [end-time (get-in @acknowledged-checks [check-name current-env])]
+(defn acknowledge-section [acknowledged-checks acknowledge-hours-to-expire endpoint check-id current-env]
+  (let [end-time (get-in @acknowledged-checks [check-id current-env])]
     [:section.acknowledge
      [:header "Acknowledgement"]
      
@@ -40,26 +40,26 @@
         [:span.value "Not acknowlegded"]])
 
      (if end-time 
-       (del-form endpoint check-name current-env)
-       (ack-form endpoint check-name current-env acknowledge-hours-to-expire))]))
+       (del-form endpoint check-id current-env)
+       (ack-form endpoint check-id current-env acknowledge-hours-to-expire))]))
 
-(defn rendered-check-results [check-results acknowledged-checks {:keys [max-check-history endpoint acknowledge-hours-to-expire]} check-name current-env]
+(defn rendered-check-results [check-results acknowledged-checks {:keys [max-check-history endpoint acknowledge-hours-to-expire]} check-id current-env]
   (let [show-links false]
     [:section.checks
      [:article.check
-      (acknowledge-section acknowledged-checks acknowledge-hours-to-expire endpoint check-name current-env)
+      (acknowledge-section acknowledged-checks acknowledge-hours-to-expire endpoint check-id current-env)
       [:div.results
-       (eo/render-results-for-env max-check-history check-name endpoint show-links [current-env check-results])]]]))
+       (eo/render-results-for-env max-check-history check-id endpoint show-links [current-env check-results])]]]))
 
-(defn detail-page-content [check-results acknowledged-checks xray-conf check-name current-env]
-  (if-let [check-results (get-in @check-results [check-name current-env])]
-    (rendered-check-results check-results acknowledged-checks xray-conf check-name current-env)
+(defn detail-page-content [check-results acknowledged-checks xray-conf check-id current-env]
+  (if-let [check-results (get-in @check-results [check-id current-env])]
+    (rendered-check-results check-results acknowledged-checks xray-conf check-id current-env)
     [:div "NO DATA FOUND"]))
 
-(defn render-detail-page [check-results acknowledged-checks {:keys [endpoint refresh-frequency] :as xray-config} check-name current-env]
+(defn render-detail-page [check-results acknowledged-checks {:keys [endpoint refresh-frequency] :as xray-config} check-id current-env]
   (layout/page refresh-frequency
                [:body.detail
                 [:header
                  [:a.back {:href (str endpoint "/overview")} "< back"]
-                 [:h1 check-name]]
-                (detail-page-content check-results acknowledged-checks xray-config check-name current-env)]))
+                 [:h1 check-id]]
+                (detail-page-content check-results acknowledged-checks xray-config check-id current-env)]))
