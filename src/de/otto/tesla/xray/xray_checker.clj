@@ -26,10 +26,10 @@
 
 (defprotocol XRayCheckerProtocol
   (set-alerting-function [self alerting-fn])
-  (register-check [self check check-id])
-  (register-check-with-strategy [self check check-id strategy]))
+  (register-check [self check check-id] [self check check-id title])
+  (register-check-with-strategy [self check check-id strategy] [self check check-id title strategy]))
 
-(defrecord RegisteredXRayCheck [check check-id strategy]
+(defrecord RegisteredXRayCheck [check check-id title strategy]
   chk/XRayCheck
   (start-check [_ env]
     (chk/start-check check env)))
@@ -249,12 +249,16 @@
     (reset! alerting-fn new-alerting-fn))
 
   (register-check [self check check-id]
-    (register-check-with-strategy self check (cleanup-id check-id) default-strategy))
+    (register-check-with-strategy self check (cleanup-id check-id) check-id default-strategy))
+  (register-check [self check check-id title]
+    (register-check-with-strategy self check (cleanup-id check-id) title default-strategy))
 
   (register-check-with-strategy [self check check-id strategy]
+    (register-check-with-strategy self check check-id check-id strategy))
+  (register-check-with-strategy [self check check-id title strategy]
     (log/info "registering check with id: " check-id)
     (let [cleaned-id (cleanup-id check-id)]
-      (swap! (:registered-checks self) assoc cleaned-id (->RegisteredXRayCheck check cleaned-id strategy)))))
+      (swap! (:registered-checks self) assoc cleaned-id (->RegisteredXRayCheck check cleaned-id title strategy)))))
 
 (defn new-xraychecker [which-checker]
   (map->XrayChecker {:which-checker which-checker}))

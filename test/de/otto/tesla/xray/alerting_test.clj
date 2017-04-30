@@ -43,8 +43,8 @@
       (chkr/set-alerting-function xray-checker (fn [{:keys [last-result]}] (swap! alerts-send conj (:message last-result))))
       (try
         (testing "should register the check"
-          (chkr/register-check xray-checker (->ErrorCheck should-fail?) "DummyCheckA")
-          (is (= {"DummyCheckA" (chkr/->RegisteredXRayCheck (->ErrorCheck should-fail?) "DummyCheckA" chkr/default-strategy)}
+          (chkr/register-check xray-checker (->ErrorCheck should-fail?) "DummyCheckA" "Checking A")
+          (is (= {"DummyCheckA" (chkr/->RegisteredXRayCheck (->ErrorCheck should-fail?) "DummyCheckA" "Checking A" chkr/default-strategy)}
                  @(:registered-checks xray-checker))))
 
         (testing "should execute the first run without alerting"
