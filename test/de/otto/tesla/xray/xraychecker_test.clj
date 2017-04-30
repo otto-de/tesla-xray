@@ -318,37 +318,44 @@
   (testing "should format timestamp properly"
     (with-redefs [chkr/as-date-time (fn [millis] (DateTime. millis DateTimeZone/UTC))]
       (is (= "{\"testCheck\":{\"dev\":\"1 November, 08:27\"}}"
-             (chkr/stringify-acknowledged-checks (atom {"testCheck" {"dev" 1477988830064}})))))))
+             (chkr/stringify-acknowledged-checks {:acknowledged-checks (atom {"testCheck" {"dev" 1477988830064}})}))))))
 
 (deftest acknowledge-check-endpoints
   (testing "should put a check object with correct expire time in the acknowledged-checks atom"
     (with-redefs [utils/current-time (constantly 10)]
       (let [acknowledged-checks (atom {})]
-        (chkr/acknowledge-check! (atom {}) acknowledged-checks "oneHourAcknowledgement" "test-env" "1")
-        (is (= ["oneHourAcknowledgement" {"test-env" (+ 10 (* 60 60 1000))}] (first @acknowledged-checks))))))
+        (chkr/acknowledge-check! {:check-results       (atom {})
+                                  :acknowledged-checks acknowledged-checks}
+                                 "oneHourAcknowledgement" "test-env" "1")
+        (is (= ["oneHourAcknowledgement" {"test-env" (+ 10 (* 60 60 1000))}]
+               (first @acknowledged-checks))))))
 
   (testing "should keep other environments unchanged when adding ack for same check in different env"
     (with-redefs [utils/current-time (constantly 10)]
       (let [acknowledged-checks (atom {"oneHourAcknowledgement" {"otherEnv" 20}})]
-        (chkr/acknowledge-check! (atom {}) acknowledged-checks "oneHourAcknowledgement" "test-env" "1")
+        (chkr/acknowledge-check! {:check-results       (atom {})
+                                  :acknowledged-checks acknowledged-checks}
+                                 "oneHourAcknowledgement" "test-env" "1")
         (is (= ["oneHourAcknowledgement" {"test-env" (+ 10 (* 60 60 1000))
                                           "otherEnv" 20}] (first @acknowledged-checks))))))
 
   (testing "should immediatly change the overall status to acknowledged"
     (let [acknowledged-checks (atom {})
           check-results (atom {"testCheck" {"test-env" {:overall-status :error}}})]
-      (chkr/acknowledge-check! check-results acknowledged-checks "testCheck" "test-env" "1")
+      (chkr/acknowledge-check! {:check-results       check-results
+                                :acknowledged-checks acknowledged-checks}
+                               "testCheck" "test-env" "1")
       (is (= {"testCheck" {"test-env" {:overall-status :acknowledged}}}
              @check-results))))
 
   (testing "should remove a check object regardless of it's expire time"
     (let [acknowledged-checks (atom {"checkToBeRemoved" {"testEnv" 1000}})]
-      (chkr/remove-acknowledgement! acknowledged-checks "checkToBeRemoved" "testEnv")
+      (chkr/remove-acknowledgement! {:acknowledged-checks acknowledged-checks} "checkToBeRemoved" "testEnv")
       (is (= {} @acknowledged-checks))))
   (testing "should only remove one env and keep the other one"
     (let [acknowledged-checks (atom {"checkToBeRemoved" {"dropEnv" 1000
                                                          "keepEnv" 100}})]
-      (chkr/remove-acknowledgement! acknowledged-checks "checkToBeRemoved" "dropEnv")
+      (chkr/remove-acknowledgement! {:acknowledged-checks acknowledged-checks} "checkToBeRemoved" "dropEnv")
       (is (= {"checkToBeRemoved" {"keepEnv" 100}} @acknowledged-checks)))))
 
 (def build-check-id-env-vecs #'chkr/build-check-id-env-vecs)
@@ -359,7 +366,7 @@
       (is (= [[check-a "dev"] [check-a "test"]
               [check-b "dev"] [check-b "test"]]
              (build-check-id-env-vecs ["dev" "test"] {"CheckA" check-a
-                                                        "CheckB" check-b}))))))
+                                                      "CheckB" check-b}))))))
 
 
 (deftest clear-outdated-acknowledgements!
@@ -381,9 +388,13 @@
         (let [check-results (atom {})
               hour-as-millis (* 60 60 1000)
               acknowledged-checks (atom {})]
-          (chkr/acknowledge-check! check-results acknowledged-checks "CheckA" "dev" "1")
+          (chkr/acknowledge-check! {:check-results       check-results
+                                    :acknowledged-checks acknowledged-checks} 
+                                   "CheckA" "dev" "1")
           (is (= {"CheckA" {"dev" (+ (* 1 hour-as-millis) mock-time)}} @acknowledged-checks))
-          (chkr/acknowledge-check! check-results acknowledged-checks "CheckB" "prod" "1")
+          (chkr/acknowledge-check! {:check-results       check-results
+                                    :acknowledged-checks acknowledged-checks} 
+                                   "CheckB" "prod" "1")
           (is (= {"CheckA" {"dev" (+ (* 1 hour-as-millis) mock-time)}
                   "CheckB" {"prod" (+ (* 1 hour-as-millis) mock-time)}} @acknowledged-checks))
           (with-redefs [utils/current-time (constantly (+ (* 2 hour-as-millis) mock-time))]

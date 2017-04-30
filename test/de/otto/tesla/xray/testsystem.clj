@@ -15,10 +15,10 @@
     2 (chk/->XRayCheckResult :warning "warning")
     3 (chk/->XRayCheckResult :acknowledged "acknowledged")))
 
-(defrecord Check [check-id]
+(defrecord Check [check-id title]
   c/Lifecycle
   (start [self]
-    (chkr/register-check (:rt-checker self) self check-id)
+    (chkr/register-check (:rt-checker self) self check-id title)
     self)
   (stop [self] self)
 
@@ -30,13 +30,13 @@
   (-> (tesla/base-system (assoc runtime-config :name "test-system"))
       (assoc
         :rt-checker (c/using (chkr/new-xraychecker "test") [:handler :config :scheduler])
-        :check0 (c/using (->Check "check0") [:rt-checker])
-        :check1 (c/using (->Check "check1") [:rt-checker])
-        :check2 (c/using (->Check "check2") [:rt-checker])
-        :check3 (c/using (->Check "check3") [:rt-checker])
-        :check4 (c/using (->Check "check4") [:rt-checker])
-        :check5 (c/using (->Check "check5") [:rt-checker])
-        :check6 (c/using (->Check "check6") [:rt-checker]))
+        :check0 (c/using (->Check "check0" "Checking system 0") [:rt-checker])
+        :check1 (c/using (->Check "check1" "Checking system 1 & No encoding problem") [:rt-checker])
+        :check2 (c/using (->Check "check2" "Checking system 2") [:rt-checker])
+        :check3 (c/using (->Check "check3" "Checking system 3 + Something more") [:rt-checker])
+        :check4 (c/using (->Check "check4" "Checking system 4") [:rt-checker])
+        :check5 (c/using (->Check "check5" "Checking system 5") [:rt-checker])
+        :check6 (c/using (->Check "check6" "Checking system 6") [:rt-checker]))
       (serving-with-jetty/add-server :rt-checker)))
 
 (defn -main [& args]

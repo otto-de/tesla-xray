@@ -27,16 +27,17 @@
 (defn- sort-results-by-env [results-for-env environments]
   (sort-by (fn [[env _]] (.indexOf environments env)) results-for-env))
 
-(defn- check-results-as-html [{:keys [environments nr-checks-displayed endpoint]} [check-id results-for-env]]
+(defn- check-results-as-html [registered-checks {:keys [environments nr-checks-displayed endpoint]} [check-id results-for-env]]
   (let [show-links true
         sorted-results (sort-results-by-env results-for-env environments)]
     [:article.check
-     [:header check-id]
+     [:header (get-in registered-checks [check-id :title])]
      [:div.results
       (map (partial render-results-for-env nr-checks-displayed check-id endpoint show-links) sorted-results)]]))
 
-(defn render-env-overview [check-results last-check {:keys [endpoint refresh-frequency] :as xray-config}]
-  (let [overall-status (name (os/calc-overall-status check-results last-check refresh-frequency))]
+(defn render-env-overview [{:keys [registered-checks check-results last-check xray-config]}]
+  (let [{:keys [refresh-frequency endpoint]} xray-config
+        overall-status (name (os/calc-overall-status check-results last-check refresh-frequency))]
     (layout/page refresh-frequency
                  [:body.overview
                   [:header
@@ -47,4 +48,4 @@
                    overall-status]
 
                   [:section.checks
-                   (map (partial check-results-as-html xray-config) @check-results)]])))
+                   (map (partial check-results-as-html @registered-checks xray-config) @check-results)]])))

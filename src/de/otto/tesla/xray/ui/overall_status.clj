@@ -20,8 +20,9 @@
       :default :ok)))
 
 
-(defn render-overall-status [check-results last-check {:keys [refresh-frequency endpoint]}]
-  (let [overall-status (name (calc-overall-status check-results last-check refresh-frequency))]
+(defn render-overall-status [{:keys [check-results last-check xray-config]}]
+  (let [{:keys [refresh-frequency endpoint]} xray-config
+        overall-status (name (calc-overall-status check-results last-check refresh-frequency))]
     (layout/page refresh-frequency
       [:body.overall
        [:header

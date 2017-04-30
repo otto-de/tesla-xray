@@ -56,10 +56,11 @@
     (rendered-check-results check-results acknowledged-checks xray-conf check-id current-env)
     [:div "NO DATA FOUND"]))
 
-(defn render-detail-page [check-results acknowledged-checks {:keys [endpoint refresh-frequency] :as xray-config} check-id current-env]
-  (layout/page refresh-frequency
-               [:body.detail
-                [:header
-                 [:a.back {:href (str endpoint "/overview")} "< back"]
-                 [:h1 check-id]]
-                (detail-page-content check-results acknowledged-checks xray-config check-id current-env)]))
+(defn render-detail-page [{:keys [registered-checks check-results acknowledged-checks xray-config]} check-id current-env]
+  (let [{:keys [refresh-frequency endpoint]} xray-config]
+    (layout/page refresh-frequency
+                 [:body.detail
+                  [:header
+                   [:a.back {:href (str endpoint "/overview")} "< back"]
+                   [:h1 (get-in @registered-checks [check-id :title])]]
+                  (detail-page-content check-results acknowledged-checks xray-config check-id current-env)])))

@@ -38,7 +38,7 @@
   (try
     (alerting-function {:last-result    (first results)
                         :overall-status overall-status
-                        :check-id     check-id
+                        :check-id       check-id
                         :env            current-env})
     (catch Exception e
       (log/error e "Error when calling alerting function"))))
@@ -133,12 +133,12 @@
     (catch Exception e
       (log/error e "caught error when trying to start the xraychecks"))))
 
-(defn acknowledge-check! [check-results acknowledged-checks check-id environment duration-in-hours]
+(defn acknowledge-check! [{:keys [check-results acknowledged-checks]} check-id environment duration-in-hours]
   (let [duration-in-ms (* 60 60 1000 (Long/parseLong duration-in-hours))]
     (swap! acknowledged-checks assoc-in [check-id environment] (+ duration-in-ms (utils/current-time)))
     (swap! check-results assoc-in [check-id environment :overall-status] :acknowledged)))
 
-(defn remove-acknowledgement! [acknowledged-checks check-id environment]
+(defn remove-acknowledgement! [{:keys [acknowledged-checks]} check-id environment]
   (swap! acknowledged-checks update check-id dissoc environment)
   (swap! acknowledged-checks (fn [x] (into {} (filter #(not-empty (second %)) x)))))
 
@@ -148,7 +148,7 @@
 (defn as-readable-time [millis]
   (.toString (as-date-time millis) (DateTimeFormat/forPattern "d MMMM, hh:mm")))
 
-(defn stringify-acknowledged-checks [acknowledged-checks]
+(defn stringify-acknowledged-checks [{:keys [acknowledged-checks]}]
   (let [format-time (fn [_ value]
                       (if (number? value)
                         (as-readable-time value)
@@ -164,51 +164,51 @@
                                :last-build-time date-time-string
                                :lastBuildStatus (str overall-status)} [])))))
 
-(defn render-xml [check-results]
+(defn render-xml [{:keys [check-results]}]
   (->> (render-results-xml check-results)
        (xml/element :Projects {})
        (xml/emit-str)))
 
-(defn- xray-routes [{:keys [check-results last-check xray-config acknowledged-checks]}]
-  (let [{:keys [endpoint]} xray-config]
+(defn- xray-routes [self]
+  (let [endpoint (get-in self [:xray-config :endpoint])]
     (chandler/api
       (comp/routes
         (croute/resources "/")
         (comp/GET endpoint []
           {:status  200
            :headers {"Content-Type" "text/html"}
-           :body    (oas/render-overall-status check-results last-check xray-config)})
+           :body    (oas/render-overall-status self)})
 
         (comp/GET (str endpoint "/overview") []
           {:status  200
            :headers {"Content-Type" "text/html"}
-           :body    (eo/render-env-overview check-results last-check xray-config)})
+           :body    (eo/render-env-overview self)})
 
         (comp/GET (str endpoint "/detail/:check-id/:environment") [check-id environment]
           {:status  200
            :headers {"Content-Type" "text/html"}
-           :body    (dp/render-detail-page check-results acknowledged-checks xray-config check-id environment)})
+           :body    (dp/render-detail-page self check-id environment)})
 
         (comp/GET (str endpoint "/acknowledged-checks") []
           {:status  200
            :headers {"Content-Type" "application/json"}
-           :body    (stringify-acknowledged-checks acknowledged-checks)})
+           :body    (stringify-acknowledged-checks self)})
 
         (comp/POST (str endpoint "/acknowledged-checks") [check-id environment hours]
-          (acknowledge-check! check-results acknowledged-checks check-id environment hours)
+          (acknowledge-check! self check-id environment hours)
           {:status  204
            :headers {"Content-Type" "text/plain"}
            :body    ""})
 
         (comp/DELETE (str endpoint "/acknowledged-checks/:check-id/:environment") [check-id environment]
-          (remove-acknowledgement! acknowledged-checks check-id environment)
+          (remove-acknowledgement! self check-id environment)
           {:status  204
            :headers {"Content-Type" "text/plain"}
            :body    ""})
         (comp/GET "/cc.xml" []
           {:status  200
            :headers {"Content-Type" "text/xml"}
-           :body    (render-xml check-results)})
+           :body    (render-xml self)})
         ))))
 
 (defn default-strategy [results]
