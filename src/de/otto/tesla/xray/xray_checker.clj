@@ -16,6 +16,7 @@
             [de.otto.tesla.xray.check :as chk]
             [de.otto.tesla.xray.acknowledge :as acknowledge]
             [de.otto.tesla.xray.cc :as cc]
+            [de.otto.tesla.xray.alerting :as alerting]
             [de.otto.tesla.xray.util.utils :as utils]
             [de.otto.tesla.stateful.handler :as hndl]
             [de.otto.tesla.xray.check :as chk]))
@@ -30,34 +31,11 @@
   (start-check [_ env]
     (chk/start-check check env)))
 
-(defn send-alerts! [alerting-function check-id current-env results overall-status]
-  (try
-    (alerting-function {:last-result    (first results)
-                        :overall-status overall-status
-                        :check-id       check-id
-                        :env            current-env})
-    (catch Exception e
-      (log/error e "Error when calling alerting function"))))
-
-(defn do-alerting! [alerting-fn check-results check-id current-env overall-status]
-  (when-let [alerting-function @alerting-fn]
-    (let [results (get-in @check-results [check-id current-env :results])]
-      (send-alerts! alerting-function check-id current-env results overall-status))))
-
 (defn- append-result [old-results result max-check-history]
   (let [limited-results (take (dec max-check-history) old-results)]
     (conj limited-results result)))
 
-(defn existing-status-has-changed? [overall-status new-overall-status]
-  (if overall-status
-    (not= overall-status new-overall-status)))
-
-(defn initial-status-is-failure? [overall-status new-overall-status]
-  (and
-    (nil? overall-status)
-    (not= :ok new-overall-status)))
-
-(defn- update-results! [{:keys [alerting-fn check-results xray-config acknowledged-checks]} {:keys [check-id strategy]} current-env result]
+(defn- update-results! [{:keys [check-results xray-config acknowledged-checks] :as self} {:keys [check-id strategy]} current-env result]
   (let [{:keys [max-check-history]} xray-config
         {:keys [results overall-status]} (get-in @check-results [check-id current-env])
         acknowledged? (contains? (get @acknowledged-checks check-id) current-env)
@@ -68,10 +46,7 @@
         new-overall-status (if acknowledged? :acknowledged (strategy new-results))]
     (swap! check-results assoc-in [check-id current-env :results] new-results)
     (swap! check-results assoc-in [check-id current-env :overall-status] new-overall-status)
-    (when (or
-            (existing-status-has-changed? overall-status new-overall-status)
-            (initial-status-is-failure? overall-status new-overall-status))
-      (do-alerting! alerting-fn check-results check-id current-env new-overall-status))))
+    (alerting/do-alerting-or-not self check-id current-env overall-status)))
 
 (defn- check-result [xray-check current-env]
   (try

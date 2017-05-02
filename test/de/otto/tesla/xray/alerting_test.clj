@@ -6,8 +6,7 @@
     [de.otto.tesla.xray.xray-checker :as chkr]
     [com.stuartsierra.component :as c]
     [clojure.walk :as walk]
-    [com.stuartsierra.component :as comp]
-    [de.otto.tesla.xray.util.utils :as utils])
+    [com.stuartsierra.component :as comp])
   (:import (de.otto.tesla.xray.check XRayCheckResult)))
 
 (defrecord ErrorCheck [should-fail?]
