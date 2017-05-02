@@ -1,24 +1,20 @@
 (ns de.otto.tesla.xray.xray-checker
   (:require [com.stuartsierra.component :as c]
-            [overtone.at-at :as at]
-            [clojure.tools.logging :as log]
-            [compojure.core :as comp]
             [clojure.string :as cs]
-            [de.otto.tesla.xray.ui.detail-page :as dp]
-            [de.otto.tesla.xray.ui.env-overview :as eo]
-            [de.otto.tesla.xray.ui.overall-status :as oas]
-            [de.otto.tesla.xray.conf.reading-properties :as props]
+            [clojure.tools.logging :as log]
+            [overtone.at-at :as at]
+            [compojure.core :as comp]
             [compojure.route :as croute]
-            [de.otto.tesla.stateful.scheduler :as sched]
             [compojure.handler :as chandler]
-            [de.otto.tesla.xray.util.utils :as utils]
+            [de.otto.tesla.stateful.scheduler :as sched]
             [de.otto.tesla.stateful.handler :as hndl]
+            [de.otto.tesla.xray.conf.reading-properties :as props]
             [de.otto.tesla.xray.check :as chk]
             [de.otto.tesla.xray.acknowledge :as acknowledge]
             [de.otto.tesla.xray.cc :as cc]
             [de.otto.tesla.xray.alerting :as alerting]
+            [de.otto.tesla.xray.ui.routes :as ui]
             [de.otto.tesla.xray.util.utils :as utils]
-            [de.otto.tesla.stateful.handler :as hndl]
             [de.otto.tesla.xray.check :as chk]))
 
 (defprotocol XRayCheckerProtocol
@@ -75,27 +71,12 @@
       (log/error e "caught error when trying to start the xraychecks"))))
 
 (defn- xray-routes [self]
-  (let [endpoint (get-in self [:xray-config :endpoint])]
-    (chandler/api
-      (comp/routes
-        (croute/resources "/")
-        (comp/GET endpoint []
-          {:status  200
-           :headers {"Content-Type" "text/html"}
-           :body    (oas/render-overall-status self)})
-
-        (comp/GET (str endpoint "/overview") []
-          {:status  200
-           :headers {"Content-Type" "text/html"}
-           :body    (eo/render-env-overview self)})
-
-        (comp/GET (str endpoint "/detail/:check-id/:environment") [check-id environment]
-          {:status  200
-           :headers {"Content-Type" "text/html"}
-           :body    (dp/render-detail-page self check-id environment)})
-
-        (acknowledge/routes self endpoint)
-        (cc/routes self)))))
+  (chandler/api
+    (comp/routes
+      (croute/resources "/")
+      (ui/routes self)
+      (acknowledge/routes self)
+      (cc/routes self))))
 
 (defn default-strategy [results]
   (:status (first results)))

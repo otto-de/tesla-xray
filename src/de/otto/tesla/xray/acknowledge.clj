@@ -40,21 +40,22 @@
                         value))]
     (json/write-str @acknowledged-checks :value-fn format-time)))
 
-(defn routes [self endpoint]
-  (comp/routes
-    (comp/GET (str endpoint "/acknowledged-checks") []
-      {:status  200
-       :headers {"Content-Type" "application/json"}
-       :body    (stringify-acknowledged-checks self)})
+(defn routes [xray-checker]
+  (let [endpoint (get-in xray-checker [:xray-config :endpoint])]
+    (comp/routes
+      (comp/GET (str endpoint "/acknowledged-checks") []
+        {:status  200
+         :headers {"Content-Type" "application/json"}
+         :body    (stringify-acknowledged-checks xray-checker)})
 
-    (comp/POST (str endpoint "/acknowledged-checks") [check-id environment hours]
-      (acknowledge-check! self check-id environment hours)
-      {:status  204
-       :headers {"Content-Type" "text/plain"}
-       :body    ""})
+      (comp/POST (str endpoint "/acknowledged-checks") [check-id environment hours]
+        (acknowledge-check! xray-checker check-id environment hours)
+        {:status  204
+         :headers {"Content-Type" "text/plain"}
+         :body    ""})
 
-    (comp/DELETE (str endpoint "/acknowledged-checks/:check-id/:environment") [check-id environment]
-      (remove-acknowledgement! self check-id environment)
-      {:status  204
-       :headers {"Content-Type" "text/plain"}
-       :body    ""})))
+      (comp/DELETE (str endpoint "/acknowledged-checks/:check-id/:environment") [check-id environment]
+        (remove-acknowledgement! xray-checker check-id environment)
+        {:status  204
+         :headers {"Content-Type" "text/plain"}
+         :body    ""}))))
