@@ -35,6 +35,30 @@
      [:div.results
       (map (partial render-results-for-env nr-checks-displayed check-id endpoint show-links) sorted-results)]]))
 
+(defn overall-status-ok? [[_env {:keys [overall-status]}]]
+  (= overall-status :ok))
+
+(defn all-ok? [[_check-id all-env-result]]
+  (every? overall-status-ok? all-env-result))
+
+(defn separate-completely-ok-checks [check-results]
+  (->> check-results
+       (group-by all-ok?)
+       (map (fn [[k v]] [(if k :all-ok :some-not-ok) (into {} v)]))
+       (into {})))
+
+(defn check-titles [titles]
+  (->> (for [title titles] [:div title])
+       (into [:section.titles])))
+
+(defn summarize-ok-checks [register-checks ok-checks]
+  [:article.check
+   [:header "All OK checks"]
+   [:div.results
+    [:div.env-result.status.ok
+     [:header (str (count ok-checks) " checks are completely OK!")]
+     (check-titles (map (fn [[k _]] (get-in register-checks [k :title])) ok-checks))]]])
+
 (defn render-env-overview [{:keys [registered-checks check-results last-check xray-config]}]
   (let [{:keys [refresh-frequency endpoint]} xray-config
         overall-status (name (os/calc-overall-status check-results last-check refresh-frequency))]
@@ -47,5 +71,7 @@
                   [:section {:class (str "status " overall-status)}
                    overall-status]
 
-                  [:section.checks
-                   (map (partial check-results-as-html @registered-checks xray-config) @check-results)]])))
+                  (let [{:keys [all-ok some-not-ok]} (separate-completely-ok-checks @check-results)]
+                    [:section.checks
+                     (map (partial check-results-as-html @registered-checks xray-config) some-not-ok)
+                     (summarize-ok-checks @registered-checks all-ok)])])))

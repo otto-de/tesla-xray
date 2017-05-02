@@ -1,12 +1,21 @@
 body.overview {
   
-  header {
-    
-  }
-
   section.status {
     font-size: 3em;
   }
-  
-  
+
+  section.titles {
+
+    & > div {
+      display: inline-block;
+
+      margin: 2px;
+      padding: 2px;
+
+      background-color: #2ecc71;
+      color: rgba(0, 0, 0, 0.33);
+
+    }
+  }
+
 }

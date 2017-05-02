@@ -167,32 +167,32 @@
           xray-checker (:xray-checker started)
           handlers (handler/handler (:handler started))]
       (try
-        (chkr/register-check xray-checker (->DummyCheck) "DummyCheck")
+        (chkr/register-check xray-checker (->ErrorCheck) "ErrorCheck")
         (start-checks xray-checker)
 
         (testing "should visualize the response on overview-page"
           (let [response (handlers (mock/request :get "/xray-checker/overview"))]
             (is (= 200 (:status response)))
             (is (= {"Content-Type" "text/html"} (:headers response)))
-            (is (= true (.contains (:body response) "2015.11.10 11:40:24 tt:0 dummy-message")))))
+            (is (= true (.contains (:body response) "2015.11.10 11:40:24 tt:0 error-message")))))
 
         (testing "should visualize the overall-status on root-page"
           (let [response (handlers (mock/request :get "/xray-checker"))]
             (is (= 200 (:status response)))
             (is (= {"Content-Type" "text/html"} (:headers response)))
-            (is (= true (.contains (:body response) "ok")))))
+            (is (= true (.contains (:body response) "error")))))
 
         (testing "should visualize the detail-status on detail-page"
-          (let [response (handlers (mock/request :get "/xray-checker/detail/DummyCheck/dev"))]
+          (let [response (handlers (mock/request :get "/xray-checker/detail/ErrorCheck/dev"))]
             (is (= 200 (:status response)))
             (is (= {"Content-Type" "text/html"} (:headers response)))
             (is (= true (.contains (:body response) "dev")))
-            (is (= true (.contains (:body response) "2015.11.10 11:40:24 tt:0 dummy-message")))))
+            (is (= true (.contains (:body response) "2015.11.10 11:40:24 tt:0 error-message")))))
         (testing "should emit cc xml for monitors"
           (let [response (handlers (mock/request :get "/cc.xml"))]
             (is (= 200 (:status response)))
             (is (= {"Content-Type" "text/xml"} (:headers response)))
-            (is (= "<?xml version=\"1.0\" encoding=\"UTF-8\"?><Projects><Project name=\"DummyCheck on dev\" last-build-time=\"2015-11-10T10:40:24.778Z\" lastBuildStatus=\":ok\"></Project></Projects>"
+            (is (= "<?xml version=\"1.0\" encoding=\"UTF-8\"?><Projects><Project name=\"ErrorCheck on dev\" last-build-time=\"2015-11-10T10:40:24.778Z\" lastBuildStatus=\":error\"></Project></Projects>"
                    (:body response)))))
 
         (finally

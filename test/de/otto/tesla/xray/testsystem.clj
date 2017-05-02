@@ -9,11 +9,11 @@
   (:gen-class))
 
 (defn random-result []
-  (case (rand-int 4)
-    0 (chk/->XRayCheckResult :ok "ok")
+  (case (rand-int 10)
     1 (chk/->XRayCheckResult :error "error")
     2 (chk/->XRayCheckResult :warning "warning")
-    3 (chk/->XRayCheckResult :acknowledged "acknowledged")))
+    3 (chk/->XRayCheckResult :acknowledged "acknowledged")
+    (chk/->XRayCheckResult :ok "ok")))
 
 (defrecord Check [check-id title]
   c/Lifecycle

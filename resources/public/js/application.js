@@ -1,7 +1,6 @@
 var forms = document.querySelectorAll('form');
 
 forms.forEach(function (form) {
-    console.log("registering submit handler", form);
     form.addEventListener('submit', function (e) {
         e.preventDefault();
 
