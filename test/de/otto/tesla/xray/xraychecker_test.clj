@@ -63,8 +63,8 @@
         (chkr/register-check xray-checker (->DummyCheck) "DummyCheckA" "Checking A")
         (chkr/register-check xray-checker (->DummyCheck) "DummyCheckB" "Checking B")
         (try
-          (is (= {"DummyCheckA" (chkr/->RegisteredXRayCheck (->DummyCheck) "DummyCheckA" "Checking A" chkr/default-strategy)
-                  "DummyCheckB" (chkr/->RegisteredXRayCheck (->DummyCheck) "DummyCheckB" "Checking B" chkr/default-strategy)}
+          (is (= {"DummyCheckA" (chk/->RegisteredXRayCheck (->DummyCheck) "DummyCheckA" "Checking A" chkr/default-strategy)
+                  "DummyCheckB" (chk/->RegisteredXRayCheck (->DummyCheck) "DummyCheckB" "Checking B" chkr/default-strategy)}
                  @(:registered-checks xray-checker)))
           (eventually (= {"DummyCheckA" {"dev" {:overall-status :ok
                                                 :results        [(chk/->XRayCheckResult :ok "dummy-message" 0 10)]}}
@@ -85,7 +85,7 @@
             xray-checker (:xray-checker started)]
         (chkr/register-check xray-checker (->BlockingCheck) "BlockingCheck" "Checking Blocking")
         (try
-          (is (= {"BlockingCheck" (chkr/->RegisteredXRayCheck (->BlockingCheck) "BlockingCheck" "Checking Blocking" chkr/default-strategy)}
+          (is (= {"BlockingCheck" (chk/->RegisteredXRayCheck (->BlockingCheck) "BlockingCheck" "Checking Blocking" chkr/default-strategy)}
                  @(:registered-checks xray-checker)))
           (eventually (= {"BlockingCheck" {"dev" {:overall-status :error
                                                   :results        [(chk/->XRayCheckResult :error "BlockingCheck did not finish in 100 ms" 100 10)
@@ -104,8 +104,8 @@
         (chkr/register-check xray-checker (->DummyCheck) "DummyCheckA" "Checking A")
         (chkr/register-check xray-checker (->DummyCheck) "DummyCheckB" "Checking B")
         (try
-          (is (= {"DummyCheckA" (chkr/->RegisteredXRayCheck (->DummyCheck) "DummyCheckA" "Checking A" chkr/default-strategy)
-                  "DummyCheckB" (chkr/->RegisteredXRayCheck (->DummyCheck) "DummyCheckB" "Checking B" chkr/default-strategy)}
+          (is (= {"DummyCheckA" (chk/->RegisteredXRayCheck (->DummyCheck) "DummyCheckA" "Checking A" chkr/default-strategy)
+                  "DummyCheckB" (chk/->RegisteredXRayCheck (->DummyCheck) "DummyCheckB" "Checking B" chkr/default-strategy)}
                  @(:registered-checks xray-checker)))
           (start-the-xraychecks xray-checker)
           (is (= {"DummyCheckA" {"dev" {:overall-status :ok
@@ -223,8 +223,8 @@
 (def build-check-id-env-vecs #'chkr/build-check-id-env-vecs)
 (deftest building-parameters-for-futures
   (testing "should build a propper parameter vector for all checks"
-    (let [check-a (chkr/->RegisteredXRayCheck "A" "A" "A" "A")
-          check-b (chkr/->RegisteredXRayCheck "B" "B" "B" "B")]
+    (let [check-a (chk/->RegisteredXRayCheck "A" "A" "A" "A")
+          check-b (chk/->RegisteredXRayCheck "B" "B" "B" "B")]
       (is (= [[check-a "dev"] [check-a "test"]
               [check-b "dev"] [check-b "test"]]
              (build-check-id-env-vecs ["dev" "test"] {"CheckA" check-a

@@ -26,11 +26,6 @@
   (register-check [self check check-id] [self check check-id title])
   (register-check-with-strategy [self check check-id strategy] [self check check-id title strategy]))
 
-(defrecord RegisteredXRayCheck [check check-id title strategy]
-  chk/XRayCheck
-  (start-check [_ env]
-    (chk/start-check check env)))
-
 (defn- append-result [old-results result max-check-history]
   (let [limited-results (take (dec max-check-history) old-results)]
     (conj limited-results result)))
@@ -48,20 +43,6 @@
     (swap! check-results assoc-in [check-id current-env :overall-status] new-overall-status)
     (alerting/do-alerting-or-not self check-id current-env overall-status)))
 
-(defn- check-result [xray-check current-env]
-  (try
-    (or
-      (chk/start-check xray-check current-env)
-      (chk/->XRayCheckResult :warning "no xray-result returned by check"))
-    (catch Throwable t
-      (log/info t "Exception thrown in check " (:check-id xray-check))
-      (chk/->XRayCheckResult :error (.getMessage t)))))
-
-(defn- check-result-with-timings [[^RegisteredXRayCheck xray-check current-env]]
-  (let [start-time (utils/current-time)
-        check-result (check-result xray-check current-env)
-        stop-time (utils/current-time)]
-    (chk/with-timings check-result (- stop-time start-time) stop-time)))
 
 (defn- build-check-id-env-vecs [environments registered-checks]
   (for [check (vals registered-checks)
@@ -74,7 +55,7 @@
 (defn- entry-with-started-future [timeout check+env]
   (let [check-id (:check-id (first check+env))
         fallback (timeout-response check-id timeout)
-        started-check-future (future (utils/execute-with-timeout timeout fallback (check-result-with-timings check+env)))]
+        started-check-future (future (utils/execute-with-timeout timeout fallback (chk/check-result-with-timings check+env)))]
     [check+env started-check-future]))
 
 (defn- build-future-map [xray-config checks+env]
@@ -87,7 +68,7 @@
     (acknowledge/clear-outdated-acknowledgements! self)
     (let [checks+env (build-check-id-env-vecs (:environments xray-config) @registered-checks)
           checks+env-to-futures (build-future-map xray-config checks+env)]
-      (doseq [[[^RegisteredXRayCheck xray-check current-env] f] checks+env-to-futures]
+      (doseq [[[xray-check current-env] f] checks+env-to-futures]
         (update-results! self xray-check current-env (deref f)))
       (reset! last-check (utils/current-time)))
     (catch Exception e
@@ -163,7 +144,7 @@
   (register-check-with-strategy [self check check-id title strategy]
     (log/info "registering check with id: " check-id)
     (let [cleaned-id (cleanup-id check-id)]
-      (swap! (:registered-checks self) assoc cleaned-id (->RegisteredXRayCheck check cleaned-id title strategy)))))
+      (swap! (:registered-checks self) assoc cleaned-id (chk/->RegisteredXRayCheck check cleaned-id title strategy)))))
 
 (defn new-xraychecker [which-checker]
   (map->XrayChecker {:which-checker which-checker}))
