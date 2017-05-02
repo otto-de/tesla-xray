@@ -30,7 +30,7 @@
 (defn without-timings [the-map]
   (walk/prewalk replace-all-timestamps the-map))
 
-(def start-the-xraychecks #'chkr/start-the-xraychecks)
+(def start-checks #'chkr/start-checks)
 
 (deftest checks-and-check-results
   (let [should-fail? (atom false)
@@ -47,7 +47,7 @@
                  @(:registered-checks xray-checker))))
 
         (testing "should execute the first run without alerting"
-          (start-the-xraychecks xray-checker)
+          (start-checks xray-checker)
           (is (= {"DummyCheckA" {"dev" {:overall-status :ok
                                         :results        [(chk/->XRayCheckResult :ok "ok-message")]}}}
                  (without-timings @(:check-results xray-checker))))
@@ -55,7 +55,7 @@
 
         (testing "should execute the second run with first alert"
           (reset! should-fail? true)
-          (start-the-xraychecks xray-checker)
+          (start-checks xray-checker)
           (is (= {"DummyCheckA" {"dev" {:overall-status :error
                                         :results        [(chk/->XRayCheckResult :error "error-message")
                                                          (chk/->XRayCheckResult :ok "ok-message")]}}}
@@ -63,7 +63,7 @@
           (is (= ["error-message"] @alerts-send)))
 
         (testing "should execute the third run without alert"
-          (start-the-xraychecks xray-checker)
+          (start-checks xray-checker)
           (is (= {"DummyCheckA" {"dev" {:overall-status :error
                                         :results        [(chk/->XRayCheckResult :error "error-message")
                                                          (chk/->XRayCheckResult :error "error-message")
@@ -73,7 +73,7 @@
 
         (testing "should execute the fourth run with alert"
           (reset! should-fail? false)
-          (start-the-xraychecks xray-checker)
+          (start-checks xray-checker)
           (is (= {"DummyCheckA" {"dev" {:overall-status :ok
                                         :results        [(chk/->XRayCheckResult :ok "ok-message")
                                                          (chk/->XRayCheckResult :error "error-message")
@@ -97,7 +97,7 @@
         (testing "should register the check"
           (chkr/register-check xray-checker (->ErrorCheck should-fail?) "DummyCheckA")
           (reset! should-fail? true)
-          (start-the-xraychecks xray-checker)
+          (start-checks xray-checker)
           (is (= 4 (count @alerts-send)))
           (is (= ["error-message"
                   "error-message"

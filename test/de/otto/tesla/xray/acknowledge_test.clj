@@ -64,7 +64,7 @@
                     (ack/remove-acknowledgement! {:acknowledged-checks acknowledged-checks} "checkToBeRemoved" "dropEnv")
                     (is (= {"checkToBeRemoved" {"keepEnv" 100}} @acknowledged-checks)))))
 
-(def start-the-xraychecks #'chkr/start-the-xraychecks)
+(def start-the-xraychecks #'chkr/start-checks)
 (deftest acknowledging-test
   (testing "should acknowledge single check using POST endpoint"
     (let [started (comp/start (test-system {:test-check-frequency    "200000"

@@ -47,7 +47,7 @@
   (start-check [_ _]
     (throw (RuntimeException. "failing message"))))
 
-(def start-the-xraychecks #'chkr/start-the-xraychecks)
+(def start-checks #'chkr/start-checks)
 
 (defn test-system [runtime-config]
   (-> (tesla/base-system (assoc runtime-config :name "test-system"))
@@ -107,13 +107,13 @@
           (is (= {"DummyCheckA" (chk/->RegisteredXRayCheck (->DummyCheck) "DummyCheckA" "Checking A" chkr/default-strategy)
                   "DummyCheckB" (chk/->RegisteredXRayCheck (->DummyCheck) "DummyCheckB" "Checking B" chkr/default-strategy)}
                  @(:registered-checks xray-checker)))
-          (start-the-xraychecks xray-checker)
+          (start-checks xray-checker)
           (is (= {"DummyCheckA" {"dev" {:overall-status :ok
                                         :results        [(chk/->XRayCheckResult :ok "dummy-message" 0 10)]}}
                   "DummyCheckB" {"dev" {:overall-status :ok
                                         :results        [(chk/->XRayCheckResult :ok "dummy-message" 0 10)]}}}
                  @(:check-results xray-checker)))
-          (start-the-xraychecks xray-checker)
+          (start-checks xray-checker)
           (is (= {"DummyCheckA" {"dev" {:overall-status :ok
                                         :results        [(chk/->XRayCheckResult :ok "dummy-message" 0 10)
                                                          (chk/->XRayCheckResult :ok "dummy-message" 0 10)]}}
@@ -121,7 +121,7 @@
                                         :results        [(chk/->XRayCheckResult :ok "dummy-message" 0 10)
                                                          (chk/->XRayCheckResult :ok "dummy-message" 0 10)]}}}
                  @(:check-results xray-checker)))
-          (start-the-xraychecks xray-checker)
+          (start-checks xray-checker)
           (is (= {"DummyCheckA" {"dev" {:overall-status :ok
                                         :results        [(chk/->XRayCheckResult :ok "dummy-message" 0 10)
                                                          (chk/->XRayCheckResult :ok "dummy-message" 0 10)]}}
@@ -168,7 +168,7 @@
           handlers (handler/handler (:handler started))]
       (try
         (chkr/register-check xray-checker (->DummyCheck) "DummyCheck")
-        (start-the-xraychecks xray-checker)
+        (start-checks xray-checker)
 
         (testing "should visualize the response on overview-page"
           (let [response (handlers (mock/request :get "/xray-checker/overview"))]
@@ -208,7 +208,7 @@
           (chkr/register-check xray-checker (->WaitingDummyCheck 0) "DummyCheck1")
           (chkr/register-check xray-checker (->WaitingDummyCheck 100) "DummyCheck2")
           (chkr/register-check xray-checker (->WaitingDummyCheck 100) "DummyCheck3")
-          (start-the-xraychecks xray-checker)               ; wait for start
+          (start-checks xray-checker)               ; wait for start
           (eventually (= {"DummyCheck1" {"dev" {:overall-status :ok
                                                 :results        [(chk/->XRayCheckResult :ok 0 0 10)]}}
                           "DummyCheck2" {"dev" {:overall-status :ok
@@ -220,7 +220,7 @@
             (comp/stop started)))))))
 
 
-(def build-check-id-env-vecs #'chkr/build-check-id-env-vecs)
+(def build-check-id-env-vecs #'chkr/combine-each-check-and-env)
 (deftest building-parameters-for-futures
   (testing "should build a propper parameter vector for all checks"
     (let [check-a (chk/->RegisteredXRayCheck "A" "A" "A" "A")

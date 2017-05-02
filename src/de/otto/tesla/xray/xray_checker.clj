@@ -40,7 +40,7 @@
     (alerting/do-alerting-or-not self check-id current-env overall-status)))
 
 
-(defn- build-check-id-env-vecs [environments registered-checks]
+(defn- combine-each-check-and-env [environments registered-checks]
   (for [check (vals registered-checks)
         environment environments]
     [check environment]))
@@ -48,25 +48,23 @@
 (defn- timeout-response [check-id timeout]
   (chk/->XRayCheckResult :error (str check-id " did not finish in " timeout " ms") timeout (utils/current-time)))
 
-(defn- entry-with-started-future [timeout check+env]
+(defn- start-future [timeout check+env]
   (let [check-id (:check-id (first check+env))
         fallback (timeout-response check-id timeout)
         started-check-future (future (utils/execute-with-timeout timeout fallback (chk/check-result-with-timings check+env)))]
     [check+env started-check-future]))
 
-(defn- build-future-map [xray-config checks+env]
-  (let [timeout (:refresh-frequency xray-config)
-        map-entries (map (partial entry-with-started-future timeout) checks+env)]
-    (into {} map-entries)))
+(defn collect-results! [self [[xray-check current-env] f]]
+  (update-results! self xray-check current-env (deref f)))
 
-(defn- start-the-xraychecks [{:keys [last-check registered-checks xray-config] :as self}]
+(defn- start-checks [{:keys [last-check registered-checks xray-config] :as self}]
   (try
     (acknowledge/clear-outdated-acknowledgements! self)
-    (let [checks+env (build-check-id-env-vecs (:environments xray-config) @registered-checks)
-          checks+env-to-futures (build-future-map xray-config checks+env)]
-      (doseq [[[xray-check current-env] f] checks+env-to-futures]
-        (update-results! self xray-check current-env (deref f)))
-      (reset! last-check (utils/current-time)))
+    (->> @registered-checks
+         (combine-each-check-and-env (:environments xray-config))
+         (map #(start-future (:refresh-frequency xray-config) %))
+         (run! #(collect-results! self %)))
+    (reset! last-check (utils/current-time))
     (catch Exception e
       (log/error e "caught error when trying to start the xraychecks"))))
 
@@ -104,7 +102,7 @@
       (hndl/register-handler handler (xray-routes new-self))
       (log/info "this is your xray-config:  " (:xray-config new-self))
       (when frequency
-        (at/every frequency (partial start-the-xraychecks new-self) (sched/pool scheduler) :desc "Xray-Checker"))
+        (at/every frequency (partial start-checks new-self) (sched/pool scheduler) :desc "Xray-Checker"))
       new-self))
 
   (stop [self]
