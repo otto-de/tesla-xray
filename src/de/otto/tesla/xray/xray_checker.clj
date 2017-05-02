@@ -14,15 +14,11 @@
             [de.otto.tesla.xray.util.utils :as utils]
             [de.otto.tesla.stateful.handler :as hndl]
             [de.otto.tesla.xray.check :as chk]
-            [clojure.data.json :as json]
-            [clj-time.format :as tformat]
+            [de.otto.tesla.xray.acknowledge :as acknowledge]
+            [de.otto.tesla.xray.cc :as cc]
             [de.otto.tesla.xray.util.utils :as utils]
             [de.otto.tesla.stateful.handler :as hndl]
-            [de.otto.tesla.xray.check :as chk]
-            [clojure.data.xml :as xml])
-  (:import (de.otto.tesla.xray.check XRayCheckResult)
-           (org.joda.time.format DateTimeFormat)
-           (org.joda.time DateTime)))
+            [de.otto.tesla.xray.check :as chk]))
 
 (defprotocol XRayCheckerProtocol
   (set-alerting-function [self alerting-fn])
@@ -111,20 +107,9 @@
         map-entries (map (partial entry-with-started-future timeout) checks+env)]
     (into {} map-entries)))
 
-(defn acknowledgement-active? [[_ end-time]]
-  (> end-time (utils/current-time)))
-
-(defn with-cleared-acknowledgement-entry [new-state [check-id env-acknowledgements]]
-  (if-let [filtered (seq (filter acknowledgement-active? env-acknowledgements))]
-    (assoc new-state check-id (into {} filtered))
-    new-state))
-
-(defn clear-outdated-acknowledgements! [{:keys [acknowledged-checks]}]
-  (swap! acknowledged-checks #(reduce with-cleared-acknowledgement-entry {} %)))
-
 (defn- start-the-xraychecks [{:keys [last-check registered-checks xray-config] :as self}]
   (try
-    (clear-outdated-acknowledgements! self)
+    (acknowledge/clear-outdated-acknowledgements! self)
     (let [checks+env (build-check-id-env-vecs (:environments xray-config) @registered-checks)
           checks+env-to-futures (build-future-map xray-config checks+env)]
       (doseq [[[^RegisteredXRayCheck xray-check current-env] f] checks+env-to-futures]
@@ -132,42 +117,6 @@
       (reset! last-check (utils/current-time)))
     (catch Exception e
       (log/error e "caught error when trying to start the xraychecks"))))
-
-(defn acknowledge-check! [{:keys [check-results acknowledged-checks]} check-id environment duration-in-hours]
-  (let [duration-in-ms (* 60 60 1000 (Long/parseLong duration-in-hours))]
-    (swap! acknowledged-checks assoc-in [check-id environment] (+ duration-in-ms (utils/current-time)))
-    (swap! check-results assoc-in [check-id environment :overall-status] :acknowledged)))
-
-(defn remove-acknowledgement! [{:keys [acknowledged-checks]} check-id environment]
-  (swap! acknowledged-checks update check-id dissoc environment)
-  (swap! acknowledged-checks (fn [x] (into {} (filter #(not-empty (second %)) x)))))
-
-(defn as-date-time [millis]
-  (DateTime. millis))
-
-(defn as-readable-time [millis]
-  (.toString (as-date-time millis) (DateTimeFormat/forPattern "d MMMM, hh:mm")))
-
-(defn stringify-acknowledged-checks [{:keys [acknowledged-checks]}]
-  (let [format-time (fn [_ value]
-                      (if (number? value)
-                        (as-readable-time value)
-                        value))]
-    (json/write-str @acknowledged-checks :value-fn format-time)))
-
-(defn render-results-xml [check-results]
-  (for [[check-id env-to-data] @check-results]
-    (for [[env {results :results overall-status :overall-status}] env-to-data]
-      (let [^XRayCheckResult result (first results)
-            date-time-string (tformat/unparse (tformat/formatters :date-time) (DateTime. (:stop-time result)))]
-        (xml/element :Project {:name            (str check-id " on " env)
-                               :last-build-time date-time-string
-                               :lastBuildStatus (str overall-status)} [])))))
-
-(defn render-xml [{:keys [check-results]}]
-  (->> (render-results-xml check-results)
-       (xml/element :Projects {})
-       (xml/emit-str)))
 
 (defn- xray-routes [self]
   (let [endpoint (get-in self [:xray-config :endpoint])]
@@ -189,27 +138,8 @@
            :headers {"Content-Type" "text/html"}
            :body    (dp/render-detail-page self check-id environment)})
 
-        (comp/GET (str endpoint "/acknowledged-checks") []
-          {:status  200
-           :headers {"Content-Type" "application/json"}
-           :body    (stringify-acknowledged-checks self)})
-
-        (comp/POST (str endpoint "/acknowledged-checks") [check-id environment hours]
-          (acknowledge-check! self check-id environment hours)
-          {:status  204
-           :headers {"Content-Type" "text/plain"}
-           :body    ""})
-
-        (comp/DELETE (str endpoint "/acknowledged-checks/:check-id/:environment") [check-id environment]
-          (remove-acknowledgement! self check-id environment)
-          {:status  204
-           :headers {"Content-Type" "text/plain"}
-           :body    ""})
-        (comp/GET "/cc.xml" []
-          {:status  200
-           :headers {"Content-Type" "text/xml"}
-           :body    (render-xml self)})
-        ))))
+        (acknowledge/routes self endpoint)
+        (cc/routes self)))))
 
 (defn default-strategy [results]
   (:status (first results)))
