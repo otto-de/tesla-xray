@@ -35,16 +35,16 @@
      [:div.results
       (map (partial render-results-for-env nr-checks-displayed check-id endpoint show-links) sorted-results)]]))
 
-(defn overall-status-ok? [[_env {:keys [overall-status]}]]
-  (= overall-status :ok))
+(defn overall-status-not-ok? [[_env {:keys [overall-status]}]]
+  (not= overall-status :ok))
 
-(defn all-ok? [[_check-id all-env-result]]
-  (every? overall-status-ok? all-env-result))
+(defn some-not-ok? [[_check-id all-env-result]]
+  (some overall-status-not-ok? all-env-result))
 
 (defn separate-completely-ok-checks [check-results]
   (->> check-results
-       (group-by all-ok?)
-       (map (fn [[k v]] [(if k :all-ok :some-not-ok) (into {} v)]))
+       (group-by some-not-ok?)
+       (map (fn [[k v]] [(if k :some-not-ok :all-ok) (into {} v)]))
        (into {})))
 
 (defn check-titles [titles]
