@@ -6,12 +6,12 @@
 
 (defn- single-check-result-as-html [{:keys [status message time-taken stop-time]}]
   (let [stop-time-str (or (utils/readable-timestamp stop-time) "")
-        text (str stop-time-str " tt:" time-taken " " message)]
+        text          (str stop-time-str " tt:" time-taken " " message)]
     [:div.result.status {:class (name status)} text]))
 
 (defn link-to-detail-page [show-links? endpoint check-id current-env the-html]
   (let [url-ecoded-check-id (co/url-encode check-id)
-        url-encoded-env (co/url-encode current-env)]
+        url-encoded-env     (co/url-encode current-env)]
     (if show-links?
       [:a {:href (str endpoint "/detail/" url-ecoded-check-id "/" url-encoded-env)} the-html]
       the-html)))
@@ -28,7 +28,7 @@
   (sort-by (fn [[env _]] (.indexOf environments env)) results-for-env))
 
 (defn- check-results-as-html [registered-checks {:keys [environments nr-checks-displayed endpoint]} [check-id results-for-env]]
-  (let [show-links true
+  (let [show-links     true
         sorted-results (sort-results-by-env results-for-env environments)]
     [:article.check
      [:header (get-in registered-checks [check-id :title])]
@@ -36,7 +36,7 @@
       (map (partial render-results-for-env nr-checks-displayed check-id endpoint show-links) sorted-results)]]))
 
 (defn overall-status-ok? [[_env {:keys [overall-status]}]]
-  (= overall-status :ok))
+  (contains? #{:ok :none} overall-status))
 
 (defn all-ok? [[_check-id all-env-result]]
   (every? overall-status-ok? all-env-result))
