@@ -170,8 +170,8 @@
         (chkr/register-check xray-checker (->ErrorCheck) "ErrorCheck")
         (start-checks xray-checker)
 
-        (testing "should visualize the response on overview-page"
-          (let [response (handlers (mock/request :get "/xray-checker/overview"))]
+        (testing "should visualize the response on checks-page"
+          (let [response (handlers (mock/request :get "/xray-checker/checks"))]
             (is (= 200 (:status response)))
             (is (= {"Content-Type" "text/html"} (:headers response)))
             (is (= true (.contains (:body response) "2015.11.10 11:40:24 tt:0 error-message")))))
@@ -183,7 +183,7 @@
             (is (= true (.contains (:body response) "error")))))
 
         (testing "should visualize the detail-status on detail-page"
-          (let [response (handlers (mock/request :get "/xray-checker/detail/ErrorCheck/dev"))]
+          (let [response (handlers (mock/request :get "/xray-checker/checks/ErrorCheck/dev"))]
             (is (= 200 (:status response)))
             (is (= {"Content-Type" "text/html"} (:headers response)))
             (is (= true (.contains (:body response) "dev")))

@@ -12,12 +12,17 @@
          :headers {"Content-Type" "text/html"}
          :body    (oas/render-overall-status xray-checker)})
 
-      (comp/GET (str endpoint "/overview") []
+      (comp/GET (str endpoint "/checks") []
         {:status  200
          :headers {"Content-Type" "text/html"}
          :body    (eo/render-env-overview xray-checker)})
 
-      (comp/GET (str endpoint "/detail/:check-id/:environment") [check-id environment]
+      (comp/GET (str endpoint "/checks/:check-id") [check-id]
+        {:status  200
+         :headers {"Content-Type" "text/html"}
+         :body    (eo/render-single-check xray-checker check-id)})
+      
+      (comp/GET (str endpoint "/checks/:check-id/:environment") [check-id environment]
         {:status  200
          :headers {"Content-Type" "text/html"}
          :body    (dp/render-detail-page xray-checker check-id environment)}))))

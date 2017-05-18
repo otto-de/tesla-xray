@@ -28,6 +28,6 @@
        [:header
         "Last check: " (utils/readable-timestamp @last-check)]
 
-       [:a {:href (str endpoint "/overview")}
+       [:a {:href (str endpoint "/checks")}
         [:section {:class (str "status " overall-status)}
          overall-status]]])))

@@ -75,10 +75,13 @@
              [:div.env-result.status.ok
               [:header "2 checks are completely OK!"]
               [:section.titles
-               [:div "Check 1"]
-               [:div "Check 2"]]]]]
+               [:a {:href "http://example.com/checks/check1"}
+                "Check 1"]
+               [:a {:href "http://example.com/checks/check2"}
+                "Check 2"]]]]]
            (ov/summarize-ok-checks {"check1" {:title "Check 1"}
                                     "check2" {:title "Check 2"}}
+                                   "http://example.com"
                                    {"check1" {"dev"  {:overall-status :ok}
                                               "qa"   {:overall-status :ok}
                                               "prod" {:overall-status :ok}}

@@ -61,6 +61,6 @@
     (layout/page refresh-frequency
                  [:body.detail
                   [:header
-                   [:a.back {:href (str endpoint "/overview")} "< back"]
+                   [:a.back {:href (str endpoint "/checks")} "< back"]
                    [:h1 (get-in @registered-checks [check-id :title])]]
                   (detail-page-content check-results acknowledged-checks xray-config check-id current-env)])))

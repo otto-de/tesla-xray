@@ -13,7 +13,7 @@
   (let [url-ecoded-check-id (co/url-encode check-id)
         url-encoded-env     (co/url-encode current-env)]
     (if show-links?
-      [:a {:href (str endpoint "/detail/" url-ecoded-check-id "/" url-encoded-env)} the-html]
+      [:a {:href (str endpoint "/checks/" url-ecoded-check-id "/" url-encoded-env)} the-html]
       the-html)))
 
 (defn render-results-for-env [nr-checks-displayed check-id endpoint show-links? [env {:keys [results overall-status]}]]
@@ -47,17 +47,16 @@
        (map (fn [[k v]] [(if k :all-ok :some-not-ok) (into {} v)]))
        (into {})))
 
-(defn check-titles [titles]
-  (->> (for [title titles] [:div title])
-       (into [:section.titles])))
-
-(defn summarize-ok-checks [register-checks ok-checks]
+(defn summarize-ok-checks [registered-checks endpoint ok-checks]
   [:article.check
    [:header "All OK checks"]
    [:div.results
     [:div.env-result.status.ok
      [:header (str (count ok-checks) " checks are completely OK!")]
-     (check-titles (map (fn [[k _]] (get-in register-checks [k :title])) ok-checks))]]])
+     (into [:section.titles]
+           (for [[id check] ok-checks]
+             [:a {:href (str endpoint "/checks/" id)}
+              (get-in registered-checks [id :title])]))]]])
 
 (defn render-env-overview [{:keys [registered-checks check-results last-check xray-config]}]
   (let [{:keys [refresh-frequency endpoint]} xray-config
@@ -74,4 +73,19 @@
                   (let [{:keys [all-ok some-not-ok]} (separate-completely-ok-checks @check-results)]
                     [:section.checks
                      (map (partial check-results-as-html @registered-checks xray-config) some-not-ok)
-                     (summarize-ok-checks @registered-checks all-ok)])])))
+                     (summarize-ok-checks @registered-checks endpoint all-ok)])])))
+
+(defn render-single-check [{:keys [registered-checks check-results last-check xray-config]} check-id]
+  (let [{:keys [refresh-frequency endpoint]} xray-config
+        overall-status (name (os/calc-overall-status check-results last-check refresh-frequency))]
+    (layout/page refresh-frequency
+                 [:body.overview
+                  [:header
+                   [:a.back {:href (str endpoint "/checks")} "< back"]
+                   "Last check: " (utils/readable-timestamp @last-check)]
+
+                  [:section {:class (str "status " overall-status)}
+                   overall-status]
+
+                  [:section.checks
+                   (check-results-as-html @registered-checks xray-config [check-id (get @check-results check-id)])]])))

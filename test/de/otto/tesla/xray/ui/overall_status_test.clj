@@ -78,5 +78,3 @@
               {:overall-status :none}
               {:overall-status :ok}
               {:overall-status :warning}] (flat-results check-results))))))
-
-
