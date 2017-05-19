@@ -40,8 +40,8 @@
       (serving-with-jetty/add-server :rt-checker)))
 
 (defn -main [& args]
-  (let [started (tesla/start (test-system {:test-check-frequency     "2000"
-                                           :test-nr-checks-displayed "3"
+  (let [started (tesla/start (test-system {:test-check-frequency     "30000"
+                                           :test-nr-checks-displayed "0"
                                            :test-check-environments  "dev;test;prod"}))]
     (log/info "test-system started. Goto http://localhost:8080/xray-checker")
     (restart/watch (var -main) started)))

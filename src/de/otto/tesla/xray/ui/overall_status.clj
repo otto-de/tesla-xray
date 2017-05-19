@@ -1,6 +1,7 @@
 (ns de.otto.tesla.xray.ui.overall-status
   (:require [de.otto.tesla.xray.ui.layout :as layout]
-            [de.otto.tesla.xray.util.utils :as utils]))
+            [de.otto.tesla.xray.util.utils :as utils]
+            [de.otto.tesla.xray.ui.utils :as uu]))
 
 (defn- flat-results [check-results] (mapcat vals (vals @check-results)))
 
@@ -25,7 +26,7 @@
     (layout/page refresh-frequency
       [:body.overall
        [:header
-        "Last check: " (utils/readable-timestamp @last-check)]
+        "Last check: " (uu/readable-timestamp @last-check)]
 
        [:a {:href (str endpoint "/checks")}
         [:section {:class (str "status " overall-status)}

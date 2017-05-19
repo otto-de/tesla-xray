@@ -1,14 +1,7 @@
 (ns de.otto.tesla.xray.ui.detail-page
   (:require [de.otto.tesla.xray.ui.check-overview :as eo]
-            [de.otto.tesla.xray.util.utils :as utils]
-            [de.otto.tesla.xray.ui.layout :as layout]))
-
-(defn time-left [end-time]
-  (let [millis (max (- end-time (System/currentTimeMillis)) 0)
-        seconds (int (mod (/ millis 1000) 60))
-        minutes (int (mod (/ millis (* 1000 60)) 60))
-        hours (int (mod (/ millis (* 1000 60 60)) 24))]
-    (format "%sh %smin %ssec" hours minutes seconds)))
+            [de.otto.tesla.xray.ui.layout :as layout]
+            [de.otto.tesla.xray.ui.utils :as uu]))
 
 (defn ack-form [endpoint check-id current-env acknowledge-hours-to-expire]
   [:form {:method "POST" :data-method "POST" :action (str endpoint "/acknowledged-checks") :id "set-ack"}
@@ -32,10 +25,10 @@
        [:div
         [:div
          [:span.label "active since:"]
-         [:span.value (utils/readable-timestamp end-time)]]
+         [:span.value (uu/readable-timestamp end-time)]]
         [:div 
          [:span.label "time left:"]
-         [:span.value (time-left end-time)]]]
+         [:span.value (uu/time-left end-time)]]]
        [:div
         [:span.value "Not acknowlegded"]])
 
