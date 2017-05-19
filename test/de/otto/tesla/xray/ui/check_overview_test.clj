@@ -1,7 +1,7 @@
-(ns de.otto.tesla.xray.ui.env-overview-test
+(ns de.otto.tesla.xray.ui.check-overview-test
   (:require
     [clojure.test :refer :all]
-    [de.otto.tesla.xray.ui.env-overview :as ov]))
+    [de.otto.tesla.xray.ui.check-overview :as ov]))
 
 (def sort-results-by-env #'ov/sort-results-by-env)
 (deftest sorting-results
@@ -81,7 +81,7 @@
                 "Check 2"]]]]]
            (ov/summarize-ok-checks {"check1" {:title "Check 1"}
                                     "check2" {:title "Check 2"}}
-                                   "http://example.com"
+                                   {:endpoint "http://example.com"}
                                    {"check1" {"dev"  {:overall-status :ok}
                                               "qa"   {:overall-status :ok}
                                               "prod" {:overall-status :ok}}

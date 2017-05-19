@@ -1,5 +1,5 @@
 (ns de.otto.tesla.xray.ui.detail-page
-  (:require [de.otto.tesla.xray.ui.env-overview :as eo]
+  (:require [de.otto.tesla.xray.ui.check-overview :as eo]
             [de.otto.tesla.xray.util.utils :as utils]
             [de.otto.tesla.xray.ui.layout :as layout]))
 
@@ -43,24 +43,20 @@
        (del-form endpoint check-id current-env)
        (ack-form endpoint check-id current-env acknowledge-hours-to-expire))]))
 
-(defn rendered-check-results [check-results acknowledged-checks {:keys [max-check-history endpoint acknowledge-hours-to-expire]} check-id current-env]
-  (let [show-links false]
+(defn results [check-results acknowledged-checks {:keys [max-check-history endpoint acknowledge-hours-to-expire]} check-id current-env]
+  (if-let [check-results (get-in @check-results [check-id current-env])]
     [:section.checks
      [:article.check
       (acknowledge-section acknowledged-checks acknowledge-hours-to-expire endpoint check-id current-env)
       [:div.results
-       (eo/render-results-for-env max-check-history check-id endpoint show-links [current-env check-results])]]]))
-
-(defn detail-page-content [check-results acknowledged-checks xray-conf check-id current-env]
-  (if-let [check-results (get-in @check-results [check-id current-env])]
-    (rendered-check-results check-results acknowledged-checks xray-conf check-id current-env)
+       (eo/results-for-env max-check-history check-id endpoint [current-env check-results])]]]
     [:div "NO DATA FOUND"]))
 
-(defn render-detail-page [{:keys [registered-checks check-results acknowledged-checks xray-config]} check-id current-env]
+(defn detail-page [{:keys [registered-checks check-results acknowledged-checks xray-config]} check-id current-env]
   (let [{:keys [refresh-frequency endpoint]} xray-config]
     (layout/page refresh-frequency
                  [:body.detail
                   [:header
                    [:a.back {:href (str endpoint "/checks")} "< back"]
                    [:h1 (get-in @registered-checks [check-id :title])]]
-                  (detail-page-content check-results acknowledged-checks xray-config check-id current-env)])))
+                  (results check-results acknowledged-checks xray-config check-id current-env)])))

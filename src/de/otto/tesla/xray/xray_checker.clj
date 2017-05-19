@@ -102,7 +102,7 @@
       (hndl/register-handler handler (xray-routes new-self))
       (log/info "this is your xray-config:  " (:xray-config new-self))
       (when frequency
-        (at/every frequency (partial start-checks new-self) (sched/pool scheduler) :desc "Xray-Checker"))
+        (at/every frequency (partial start-checks new-self) (sched/pool scheduler) :initial-delay 1000 :desc "Xray-Checker"))
       new-self))
 
   (stop [self]

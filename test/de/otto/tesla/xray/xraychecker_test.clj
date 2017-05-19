@@ -9,7 +9,8 @@
     [com.stuartsierra.component :as c]
     [de.otto.tesla.xray.util.utils :as utils]
     [de.otto.tesla.stateful.handler :as handler]
-    [ring.mock.request :as mock]))
+    [ring.mock.request :as mock]
+    [de.otto.tesla.xray.ui.check-overview :as ov]))
 
 (defrecord DummyCheck []
   chk/XRayCheck
@@ -161,7 +162,8 @@
             (comp/stop started)))))))
 
 (deftest request-handling-and-html-responses
-  (with-redefs [utils/current-time (fn [] 1447152024778)]
+  (with-redefs [utils/current-time (fn [] 1447152024778)
+                ov/single-result (fn [{:keys [status message time-taken stop-time]}] (str "status" status))]
     (let [started (comp/start (test-system {:test-check-frequency    "100"
                                             :test-check-environments "dev"}))
           xray-checker (:xray-checker started)
@@ -174,20 +176,20 @@
           (let [response (handlers (mock/request :get "/xray-checker/checks"))]
             (is (= 200 (:status response)))
             (is (= {"Content-Type" "text/html"} (:headers response)))
-            (is (= true (.contains (:body response) "2015.11.10 11:40:24 tt:0 error-message")))))
+            (is (.contains (:body response) "<div><header>dev</header>status:error</div>"))))
 
         (testing "should visualize the overall-status on root-page"
           (let [response (handlers (mock/request :get "/xray-checker"))]
             (is (= 200 (:status response)))
             (is (= {"Content-Type" "text/html"} (:headers response)))
-            (is (= true (.contains (:body response) "error")))))
+            (is (.contains (:body response) "<a href=\"/xray-checker/checks\"><section class=\"status error\">error</section></a>"))))
 
         (testing "should visualize the detail-status on detail-page"
           (let [response (handlers (mock/request :get "/xray-checker/checks/ErrorCheck/dev"))]
             (is (= 200 (:status response)))
             (is (= {"Content-Type" "text/html"} (:headers response)))
-            (is (= true (.contains (:body response) "dev")))
-            (is (= true (.contains (:body response) "2015.11.10 11:40:24 tt:0 error-message")))))
+            (is (.contains (:body response) "<section class=\"acknowledge\"><header>Acknowledgement</header><div><span class=\"value\">Not acknowlegded</span></div>"))
+            (is (.contains (:body response) "<div><header>dev</header>status:error</div>"))))
         (testing "should emit cc xml for monitors"
           (let [response (handlers (mock/request :get "/cc.xml"))]
             (is (= 200 (:status response)))

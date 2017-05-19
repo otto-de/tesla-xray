@@ -2,8 +2,7 @@
   (:require [de.otto.tesla.xray.ui.layout :as layout]
             [de.otto.tesla.xray.util.utils :as utils]))
 
-(defn- flat-results [check-results]
-  (mapcat vals (vals @check-results)))
+(defn- flat-results [check-results] (mapcat vals (vals @check-results)))
 
 (defn no-check-started-for-too-long-time [last-check refresh-frequency]
   (or
@@ -20,7 +19,7 @@
       :default :ok)))
 
 
-(defn render-overall-status [{:keys [check-results last-check xray-config]}]
+(defn overall-status [{:keys [check-results last-check xray-config]}]
   (let [{:keys [refresh-frequency endpoint]} xray-config
         overall-status (name (calc-overall-status check-results last-check refresh-frequency))]
     (layout/page refresh-frequency
