@@ -11,21 +11,30 @@
    time-taken
    message])
 
-(defn results-for-env [nr-checks-displayed [env {:keys [results overall-status]}]]
-  (let [url-encoded-env (co/url-encode env)]
-    [:div.env-result.status {:class (name overall-status)}
-     [:div
-      [:header env]
-      (for [r (take nr-checks-displayed results)]
-        (single-result r))]]))
+(defn- results-html [env nr-checks-displayed results]
+  [:div
+   [:header env]
+   (for [r (take nr-checks-displayed results)]
+     (single-result r))])
 
-(defn- envs-for-check [registered-checks {:keys [environments nr-checks-displayed]} [check-id results-for-check]]
+(defn results-for-env
+  ([nr-checks-displayed [env {:keys [results overall-status]}]]
+   (let [url-encoded-env (co/url-encode env)]
+     [:div.env-result.status {:class (name overall-status)}
+      (results-html env nr-checks-displayed results)]))
+  ([nr-checks-displayed [env {:keys [results overall-status]}] check-id endpoint]
+   (let [url-encoded-env (co/url-encode env)]
+     [:div.env-result.status {:class (name overall-status)}
+      [:a {:href (str endpoint "/checks/" check-id "/" url-encoded-env)}
+       (results-html env nr-checks-displayed results)]])))
+
+(defn- envs-for-check [registered-checks {:keys [environments nr-checks-displayed endpoint]} [check-id results-for-check]]
   (let [sorted-results (uu/sort-results-by-env results-for-check environments)]
     [:article.check
      [:header (get-in registered-checks [check-id :title])]
      (into [:div.results]
-           (for [r sorted-results]
-             (results-for-env nr-checks-displayed r)))]))
+           (for [result sorted-results]
+             (results-for-env nr-checks-displayed result check-id endpoint)))]))
 
 (defn summarize-ok-checks [registered-checks xray-config ok-checks]
   [:article.check
