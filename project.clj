@@ -11,8 +11,8 @@
                  [clj-time "0.13.0"]]
   :test-paths ["test" "test-resources"]
   :lein-release {:deploy-via :clojars}
-  :sass {:src "resources/app/stylesheets"
-         :dst "target/public/stylesheets"}
+  :sass {:src "resources/app/stylesheets/"
+         :dst "resources/public/stylesheets/"}
   :aliases {"jar" ["do" ["sass" "once"] "jar"]}
   :profiles {:dev {:plugins      [[lein-sassy "1.0.8"]
                                   [lein-release/lein-release "1.0.9"]]
