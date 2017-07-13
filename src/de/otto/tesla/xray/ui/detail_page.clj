@@ -20,19 +20,19 @@
   (let [end-time (get-in @acknowledged-checks [check-id current-env])]
     [:section.acknowledge
      [:header "Acknowledgement"]
-     
+
      (if end-time
        [:div
         [:div
          [:span.label "active since:"]
          [:span.value (uu/readable-timestamp end-time)]]
-        [:div 
+        [:div
          [:span.label "time left:"]
          [:span.value (uu/time-left end-time)]]]
        [:div
         [:span.value "Not acknowlegded"]])
 
-     (if end-time 
+     (if end-time
        (del-form endpoint check-id current-env)
        (ack-form endpoint check-id current-env acknowledge-hours-to-expire))]))
 
@@ -42,7 +42,7 @@
      [:article.check
       (acknowledge-section acknowledged-checks acknowledge-hours-to-expire endpoint check-id current-env)
       [:div.results
-       (eo/results-for-env max-check-history check-id endpoint [current-env check-results])]]]
+       (eo/results-for-env max-check-history [current-env check-results])]]]
     [:div "NO DATA FOUND"]))
 
 (defn detail-page [{:keys [registered-checks check-results acknowledged-checks xray-config]} check-id current-env]
