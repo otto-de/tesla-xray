@@ -29,7 +29,6 @@ function errorListener() {
 }
 
 function deleteAcknowledgement(xrayUrl, check, environment) {
-    console.log("HELLO I WAS CALLED");
     var http = new XMLHttpRequest();
     console.log(xrayUrl + '/acknowledged-checks/'+ check+ '/'+environment);
     http.open('DELETE', xrayUrl + '/acknowledged-checks/'+ check+ '/'+environment);
