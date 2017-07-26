@@ -12,9 +12,9 @@
    [:input {:type "submit" :value "ack"}]])
 
 (defn del-form [endpoint check-id current-env]
-  [:form {:id "del-ack"}
+  [:form {:data-method "DELETE" :action (str endpoint "/acknowledged-checks/" check-id "/" current-env) :id "del-ack"}
    [:div [:span.label "Reset acknowlegment:"]]
-   [:input {:type "submit" :value "reset" :on-click (format "deleteAcknowledgement(%s, %s, %s)" endpoint check-id current-env)}]])
+   [:input {:type "submit" :value "reset"}]])
 
 (defn acknowledge-section [acknowledged-checks acknowledge-hours-to-expire endpoint check-id current-env]
   (let [end-time (get-in @acknowledged-checks [check-id current-env])]

@@ -1,4 +1,5 @@
-var forms = document.querySelectorAll('form');
+var nodes = document.querySelectorAll('form');
+var forms = Array.prototype.slice.call(nodes);
 
 forms.forEach(function (form) {
     form.addEventListener('submit', function (e) {
@@ -26,18 +27,4 @@ function successListener() {
 
 function errorListener() {
     console.error(this.responseText);
-}
-
-function deleteAcknowledgement(xrayUrl, check, environment) {
-    var http = new XMLHttpRequest();
-    console.log(xrayUrl + '/acknowledged-checks/'+ check+ '/'+environment);
-    http.open('DELETE', xrayUrl + '/acknowledged-checks/'+ check+ '/'+environment);
-    http.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
-
-    http.onreadystatechange = function () {
-        if (http.readyState == 4) {
-            location.reload();
-        }
-    };
-    http.send();
 }
