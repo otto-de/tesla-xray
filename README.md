@@ -1,20 +1,17 @@
-# tesla-xray
+# tesla-xray [![Build Status](https://travis-ci.org/otto-de/tesla-xray.svg)](https://travis-ci.org/otto-de/tesla-xray)[![Dependencies Status](http://jarkeeper.com/otto-de/tesla-xray/status.svg)](http://jarkeeper.com/otto-de/tesla-xray)
+
 tesla-xray is a component for executing and visualizing checks.   
-It can be used with the tesla-microservice.
+It can be used with the [tesla-microservice](https://github.com/otto-de/tesla-microservice).
 
 [![Clojars Project](http://clojars.org/de.otto/tesla-xray/latest-version.svg)](http://clojars.org/de.otto/tesla-xray)
 
-Tesla-Xray version `0.5.0` requires tesla-microservice `0.5.2` or later.
-
-[![Build Status](https://travis-ci.org/otto-de/tesla-xray.svg)](https://travis-ci.org/otto-de/tesla-xray)
-[![Dependencies Status](http://jarkeeper.com/otto-de/tesla-xray/status.svg)](http://jarkeeper.com/otto-de/tesla-xray)
-
-  
 Checks return Check-Results which currently look like this:
 
 ```clojure
-{:status <ok/error>
-:message <your message>}
+{
+    :status <ok/error>
+    :message <your message>
+}
 
 (->XRayCheckResult :error "That is an error")
 ``` 
