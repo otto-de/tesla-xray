@@ -11,10 +11,10 @@
                  [clj-time "0.14.0"]]
   :test-paths ["test" "test-resources"]
   :lein-release {:deploy-via :clojars}
-  :sass {:src "resources/app/stylesheets/"
-         :dst "resources/public/stylesheets/"}
-  :aliases {"jar" ["do" ["sass" "once"] "jar"]}
-  :profiles {:dev {:plugins      [[lein-sassy "1.0.8"]
+  :sass {:source-paths ["resources/app/stylesheets/"]
+         :target-path "resources/public/stylesheets/"}
+  :aliases {"jar" ["do" ["sass4clj" "once"] "jar"]}
+  :profiles {:dev {:plugins      [[deraen/lein-sass4clj "0.3.1"]
                                   [lein-release/lein-release "1.0.9"]]
                    :main         de.otto.tesla.xray.testsystem
                    :source-paths ["src" "test"]
