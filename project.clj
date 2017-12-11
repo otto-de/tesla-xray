@@ -4,11 +4,11 @@
   :license {:name "Apache License 2.0"
             :url  "http://www.apache.org/license/LICENSE-2.0.html"}
   :dependencies [[org.clojure/clojure "1.8.0"]
-                 [de.otto/tesla-microservice "0.11.13"]
+                 [de.otto/tesla-microservice "0.11.16"]
                  [hiccup "1.0.5"]
-                 [ring/ring-codec "1.0.1"]
+                 [ring/ring-codec "1.1.0"]
                  [org.clojure/data.xml "0.0.8"]
-                 [clj-time "0.14.0"]]
+                 [clj-time "0.14.2"]]
   :test-paths ["test" "test-resources"]
   :lein-release {:deploy-via :clojars}
   :sass {:source-paths ["resources/app/stylesheets/"]
@@ -19,7 +19,7 @@
                    :main         de.otto.tesla.xray.testsystem
                    :source-paths ["src" "test"]
                    :dependencies [[me.lomin/component-restart "0.1.2"]
-                                  [de.otto/tesla-jetty "0.2.4"]
+                                  [de.otto/tesla-jetty "0.2.6"]
                                   [ring-mock "0.1.5"]
                                   [ch.qos.logback/logback-classic "1.2.3"]
-                                  [clj-cctray "0.12.0"]]}})
+                                  [clj-cctray "1.0.0"]]}})
