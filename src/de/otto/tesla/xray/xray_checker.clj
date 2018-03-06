@@ -74,12 +74,15 @@
 
 (defn trigger-routes [{:keys [xray-config registered-checks] :as self}]
   (let [endpoint (get xray-config :endpoint)]
-    (comp/routes
-      (comp/POST (str endpoint "/trigger-check") [check-id environment]
-        (execute-checks! self [[(get @registered-checks check-id) environment]])
-        {:status  204
-         :headers {"Content-Type" "text/plain"}
-         :body    ""}))))
+    (comp/POST (str endpoint "/trigger-check") req
+      (let [check-id (get-in req [:params :check-id])
+            environment (get-in req [:params :environment])
+            check (get @registered-checks check-id)]
+        (log/infof "trigger check %s for %s" check-id environment)
+        (execute-checks! self [[check environment]]))
+      {:status  204
+       :headers {"Content-Type" "text/plain"}
+       :body    ""})))
 
 (defn- xray-routes [self]
   (chandler/api
