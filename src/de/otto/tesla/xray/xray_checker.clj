@@ -57,16 +57,29 @@
 (defn collect-results! [self [[xray-check current-env] f]]
   (update-results! self xray-check current-env (deref f)))
 
+(defn execute-checks! [{:keys [xray-config] :as self} coll]
+  (->> coll
+       (map #(start-future (:refresh-frequency xray-config) %))
+       (run! #(collect-results! self %))))
+
 (defn- start-checks [{:keys [last-check registered-checks xray-config] :as self}]
   (try
     (acknowledge/clear-outdated-acknowledgements! self)
     (->> @registered-checks
          (combine-each-check-and-env (:environments xray-config))
-         (map #(start-future (:refresh-frequency xray-config) %))
-         (run! #(collect-results! self %)))
+         (execute-checks! self))
     (reset! last-check (utils/current-time))
     (catch Exception e
       (log/error e "caught error when trying to start the xraychecks"))))
+
+(defn trigger-routes [{:keys [xray-config registered-checks] :as self}]
+  (let [endpoint (get xray-config :endpoint)]
+    (comp/routes
+      (comp/POST (str endpoint "/trigger-check") [check-id environment]
+        (execute-checks! self [[(get @registered-checks check-id) environment]])
+        {:status  204
+         :headers {"Content-Type" "text/plain"}
+         :body    ""}))))
 
 (defn- xray-routes [self]
   (chandler/api
@@ -74,6 +87,7 @@
       (croute/resources "/")
       (ui/routes self)
       (acknowledge/routes self)
+      (trigger-routes self)
       (cc/routes self))))
 
 (defn default-strategy [results]

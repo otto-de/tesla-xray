@@ -12,37 +12,63 @@ body.detail {
     }
   }
 
-  section.acknowledge {
+  aside {
     float: left;
-    margin: 0 1em 0 0;
 
-    padding: 1em;
+    section {
+      margin: 0 1em 1em 0;
+      padding: 1em;
 
-    background-color: #8e44ad;
-    color: white;
+      color: white;
 
-    header {
-      color: rgba(0, 0, 0, 0.5);
-      margin-bottom: 1em;
-      font-size: 150%;
+      header {
+        color: rgba(0, 0, 0, 0.5);
+        margin-bottom: 1em;
+        font-size: 150%;
+      }
     }
 
-    .label {
-      font-size: 75%;
-      font-style: italic;
-      margin-right: 0.5em;
+    section.retrigger {
+      background-color: #8e44ad;
+
+      input[type=submit] {
+        color: #8e44ad;
+
+        &:focus {
+          border-color: #8e44ad;
+        }
+      }
     }
-    
-    .value {
-      font-weight: 400;
+
+    section.acknowledge {
+      background-color: #3498db;
+
+      input[type=submit] {
+        color: #3498db;
+
+        &:focus {
+          border-color: #3498db;
+        }
+      }
+
+      .label {
+        font-size: 75%;
+        font-style: italic;
+        margin-right: 0.5em;
+        margin-bottom: 0.5em;
+      }
+
+      .value {
+        font-weight: 400;
+      }
     }
   }
-  
+
   form {
     margin: 1em 0;
     
     input {
-      background-color: #9b59b6;
+      background-color: rgba(0,0,0,0.2);
       border: 2px solid white;
       color: white;
 
@@ -53,24 +79,9 @@ body.detail {
       font-size: 150%;
       font-weight: 200;
 
-      &:focus {
-        border-color: rgba(255, 255, 255, 0.75);
-        outline: none;
-        color: white;
-      }
-
-      &::selection {
-        color: #9b59b6;
-        background: rgba(255, 255, 255, 0.75);
-      }
-
-      &[type=submit] {
+     &[type=submit] {
         background-color: white;
-        color: #9b59b6;
-
-        &:focus {
-          border-color: #9b59b6;
-        }
+        color: black;
       }
       
       &+input {

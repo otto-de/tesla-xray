@@ -36,11 +36,21 @@
        (del-form endpoint check-id current-env)
        (ack-form endpoint check-id current-env acknowledge-hours-to-expire))]))
 
+(defn retrigger-section [endpoint check-id current-env]
+  [:section.retrigger
+   [:header "Re-Trigger"]
+   [:form {:method "POST" :data-method "POST" :action (str endpoint "/trigger-check") :id "trigger-check"}
+    [:input {:type "hidden" :name "check-id" :value check-id}]
+    [:input {:type "hidden" :name "environment" :value current-env}]
+    [:input {:type "submit" :value "Now!"}]]])
+
 (defn results [check-results acknowledged-checks {:keys [max-check-history endpoint acknowledge-hours-to-expire]} check-id current-env]
   (if-let [check-results (get-in @check-results [check-id current-env])]
     [:section.checks
      [:article.check
-      (acknowledge-section acknowledged-checks acknowledge-hours-to-expire endpoint check-id current-env)
+      [:aside
+       (retrigger-section endpoint check-id current-env)
+       (acknowledge-section acknowledged-checks acknowledge-hours-to-expire endpoint check-id current-env)]
       [:div.results
        (eo/results-for-env max-check-history [current-env check-results])]]]
     [:div "NO DATA FOUND"]))

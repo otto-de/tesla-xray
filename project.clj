@@ -13,7 +13,8 @@
   :lein-release {:deploy-via :clojars}
   :sass {:source-paths ["resources/app/stylesheets/"]
          :target-path "resources/public/stylesheets/"}
-  :aliases {"jar" ["do" ["sass4clj" "once"] "jar"]}
+  :aliases {"jar"     ["do" ["sass4clj" "once"] "jar"]
+            "install" ["do" ["sass4clj" "once"] "install"]}
   :profiles {:dev {:plugins      [[deraen/lein-sass4clj "0.3.1"]
                                   [lein-release/lein-release "1.0.9"]]
                    :main         de.otto.tesla.xray.testsystem
